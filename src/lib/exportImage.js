@@ -24,7 +24,7 @@ function chartOptions(type, stats, scale) {
       legend: isPie ? { display: true, position: 'left', title: { display: true, text: 'Respuesta', font: { size: 15 * scale, weight: 'bold' } }, labels: { boxWidth: 14 * scale, font: { size: 13 * scale } } } : { display: false },
       tooltip: { enabled: false },
       datalabels: isPie ? { display: false } : {
-        clip: false, anchor: 'end', align: 'right', color: '#243447', font: { size: 14 * scale, weight: 'bold' }, formatter: (value, context) => `${value} (${formatPercent(stats.entries[context.dataIndex].percentage)})`,
+        clip: false, anchor: 'end', align: 'right', color: '#243447', font: { size: 14 * scale, weight: 'bold' }, formatter: (_value, context) => formatPercent(stats.entries[context.dataIndex].percentage),
       },
     },
     layout: isPie ? {} : { padding: { right: 118 * scale } },
