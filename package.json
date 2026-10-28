@@ -1,5 +1,5 @@
 {
-  "name": "usegbe-generador-estadistica",
+  "name": "portal-herramientas",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -11,12 +11,14 @@
   "dependencies": {
     "chart.js": "^4.4.7",
     "chartjs-plugin-datalabels": "^2.2.0",
+    "docx": "^9.14.0",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "lucide-react": "^1.61.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
+    "react-router-dom": "^7.18.4",
     "sweetalert2": "^11.26.25",
     "xlsx": "^0.18.5"
   },
