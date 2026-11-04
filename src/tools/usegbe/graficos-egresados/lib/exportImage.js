@@ -98,7 +98,7 @@ export async function downloadZip(items, filename) {
   saveAs(blob, filename)
 }
 
-export function downloadPdf(items, filename, reportTitle, recordCount) {
+export function downloadPdf(items, filename, reportDetails, recordCount) {
   const document = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true })
   const pageWidth = document.internal.pageSize.getWidth()
   const pageHeight = document.internal.pageSize.getHeight()
@@ -111,17 +111,19 @@ export function downloadPdf(items, filename, reportTitle, recordCount) {
   document.setTextColor(125, 186, 240)
   document.setFont('helvetica', 'bold')
   document.setFontSize(11)
-  document.text('ITSQMET · USEGBE', 24, 28)
+  document.text('USEGBE · ITSQMET', 24, 28)
   document.setTextColor(255, 255, 255)
   document.setFontSize(27)
-  document.text('Gráficos de seguimiento a egresados', 24, 78)
+  document.text('Análisis Gráfico de Resultados', 24, 78)
   document.setTextColor(183, 201, 218)
   document.setFont('helvetica', 'normal')
-  document.setFontSize(17)
-  const titleLines = document.splitTextToSize(reportTitle, pageWidth - 48)
-  document.text(titleLines, 24, 94)
+  document.setFontSize(15)
+  document.text('Carrera:', 24, 96)
+  const careerLines = document.splitTextToSize(reportDetails.career, pageWidth - 72)
+  document.text(careerLines, 48, 96)
+  const periodY = 96 + (careerLines.length - 1) * 8 + 14
   document.setFontSize(12)
-  document.text(`${recordCount} egresados · ${new Date().toLocaleDateString('es-EC')}`, 24, 112 + (titleLines.length - 1) * 8)
+  document.text(`Período: ${reportDetails.period}`, 24, periodY)
 
   items.forEach((item) => {
     document.addPage()

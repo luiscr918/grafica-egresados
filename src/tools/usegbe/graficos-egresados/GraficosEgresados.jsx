@@ -6,7 +6,7 @@ import { careerOptions, questions } from './lib/questions'
 import { parseExcelFile } from './lib/parseExcel'
 import { getStats } from './lib/stats'
 import { generateAnalysis } from './lib/analysis'
-import { getCareerFilterKey, getCareerFilterLabel, getModality } from './lib/careerCatalog'
+import { getCareerDisplayLabel, getCareerFamily, getCareerFilterKey, getCareerFilterLabel, getModality } from './lib/careerCatalog'
 import { downloadPdf, downloadZip, renderQuestionPng } from './lib/exportImage'
 import { closeAlert, confirmAction, notifyError, notifyInfo, notifySuccess, showCareerHelp, showLoading, showResolutionHelp } from './lib/alerts'
 
@@ -113,8 +113,9 @@ export default function GraficosEgresados() {
   function getAnalysisText(question) {
     const key = `${viewMode}:${selectedPeriod}:${selectedCareer}:${question.key}`
     const selectedLabel = careerChoices.find((choice) => choice.key === selectedCareer)?.label
-    const careerLabel = selectedCareer === 'Todas' ? '' : viewMode === 'individual' && selectedLabel?.includes(' · ')
-      ? `en la carrera de ${selectedLabel.split(' · ')[0]}${selectedLabel.split(' · ')[1] === 'Normal' ? '' : `, modalidad ${selectedLabel.split(' · ')[1]}`}`
+    const selectedRecord = visibleRecords[0]
+    const careerLabel = selectedCareer === 'Todas' ? '' : viewMode === 'individual' && selectedRecord
+      ? `en la carrera de ${getCareerFamily(selectedRecord.carreraOriginal || selectedRecord.carrera)}${getModality(selectedRecord.modalidad, selectedRecord.carreraOriginal || selectedRecord.carrera) === 'Normal' ? '' : `, modalidad ${getModality(selectedRecord.modalidad, selectedRecord.carreraOriginal || selectedRecord.carrera)}`}`
       : `en la carrera de ${selectedLabel || selectedCareer}`
     return analysisOverrides[key] ?? generateAnalysis(question, question.stats, { careerLabel })
   }
@@ -159,8 +160,10 @@ export default function GraficosEgresados() {
     showLoading('Preparando PDF...')
     try {
       const items = await buildExportItems()
-      const reportTitle = `${selectedCareer === 'Todas' ? 'Consolidado institucional · Todas las carreras' : `${viewMode === 'conjunto' ? 'Carrera general' : 'Carrera y modalidad'}: ${selectedCareer}`} · Período: ${selectedPeriod === 'Todos' ? 'todos' : selectedPeriod}`
-      downloadPdf(items, `graficos_${cleanFilename(selectedCareer)}_${cleanFilename(selectedPeriod)}.pdf`, reportTitle, visibleRecords.length)
+      const careerLabel = getReportCareerLabel(visibleRecords, selectedCareer)
+      const periodLabel = selectedPeriod === 'Todos' ? 'Todos los períodos' : selectedPeriod
+      const reportTitle = { career: careerLabel, period: periodLabel }
+      downloadPdf(items, `graficos_${cleanFilename(careerLabel)}_${cleanFilename(selectedPeriod)}.pdf`, reportTitle, visibleRecords.length)
       closeAlert()
       notifySuccess('PDF descargado correctamente')
     } catch (error) {
@@ -172,10 +175,10 @@ export default function GraficosEgresados() {
   return (
     <main className="app-shell">
       <header className="hero">
-        <div className="brand-mark">ITSQMET <span>· USEGBE</span></div>
+         <div className="brand-mark">USEGBE <span>· ITSQMET</span></div>
         <div className="hero-content">
           <p className="eyebrow">Herramienta interna</p>
-          <h1>Gráficos de seguimiento a egresados</h1>
+           <h1>Análisis Gráfico de Resultados</h1>
           <p className="hero-copy">Carga las respuestas de la encuesta y genera los gráficos listos para tu informe institucional.</p>
         </div>
          <div className="hero-tools"><div className="privacy-note"><ShieldCheck size={16} /> Los archivos se procesan solo en tu navegador</div><button className="guide-button" type="button" onClick={() => setShowGuide(true)}><BookOpen size={16} strokeWidth={2.2} /> Guía de uso</button></div>
@@ -203,7 +206,7 @@ export default function GraficosEgresados() {
         </>}
 
         {files.length > 0 && allRecords.length > 0 && <section className="results-section">
-           <div className="results-toolbar"><div><p className="eyebrow">02 / Resultados</p><h2>Gráficos por pregunta</h2><p>{visibleRecords.length} egresados en la vista actual.</p></div><div className="toolbar-controls"><label><span>Tipo de análisis</span><select value={viewMode} onChange={(event) => { const nextMode = event.target.value; setViewMode(nextMode); setSelectedCareer('Todas'); if (nextMode === 'conjunto') setSelectedPeriod('Todos') }}><option value="individual">Individual por modalidad</option><option value="conjunto">Análisis conjunto por carrera</option></select></label><label><span>Período académico</span><select value={selectedPeriod} onChange={(event) => { setSelectedPeriod(event.target.value); setSelectedCareer('Todas') }}><option value="Todos">Todos los períodos</option>{periods.map((period) => <option value={period} key={period}>{period}</option>)}</select></label><label><span>{viewMode === 'conjunto' ? 'Carrera coincidente' : 'Carrera y modalidad'}</span><select value={selectedCareer} onChange={(event) => setSelectedCareer(event.target.value)}><option value="Todas">Todas</option>{careerChoices.map((choice) => <option value={choice.key} key={choice.key}>{choice.label}</option>)}</select></label><label className="resolution-field"><span>Resolución de exportación <button className="field-help-button" type="button" aria-label="Ayuda sobre resolución" onClick={showResolutionHelp}><CircleHelp size={14} /></button></span><select title="Solo cambia la calidad de las imágenes exportadas" value={resolution} onChange={(event) => setResolution(Number(event.target.value))}><option value="1">1x</option><option value="2">2x (recomendada)</option><option value="3">3x</option></select></label><button className="button button-primary" onClick={downloadAll}><Archive size={16} /> Descargar ZIP</button><button className="button button-light" onClick={downloadPdfReport}><FileText size={16} /> Descargar PDF</button></div></div>
+            <div className="results-toolbar"><div><p className="eyebrow">02 / Resultados</p><h2>Gráficos por pregunta</h2><p>{visibleRecords.length} egresados en la vista actual.</p></div><div className="toolbar-controls"><label><span>Tipo de análisis</span><select value={viewMode} onChange={(event) => { const nextMode = event.target.value; setViewMode(nextMode); setSelectedCareer('Todas'); if (nextMode === 'conjunto') setSelectedPeriod('Todos') }}><option value="individual">Individual por modalidad</option><option value="conjunto">Análisis conjunto por carrera</option></select></label><label><span>Período académico</span><select value={selectedPeriod} onChange={(event) => { setSelectedPeriod(event.target.value); setSelectedCareer('Todas') }}><option value="Todos">Todos los períodos</option>{periods.map((period) => <option value={period} key={period}>{period}</option>)}</select></label><label><span>{viewMode === 'conjunto' ? 'Carrera coincidente' : 'Carrera'}</span><select value={selectedCareer} onChange={(event) => setSelectedCareer(event.target.value)}><option value="Todas">Todas</option>{careerChoices.map((choice) => <option value={choice.key} key={choice.key}>{choice.label}</option>)}</select></label><label className="resolution-field"><span>Resolución de exportación <button className="field-help-button" type="button" aria-label="Ayuda sobre resolución" onClick={showResolutionHelp}><CircleHelp size={14} /></button></span><select title="Solo cambia la calidad de las imágenes exportadas" value={resolution} onChange={(event) => setResolution(Number(event.target.value))}><option value="1">1x</option><option value="2">2x (recomendada)</option><option value="3">3x</option></select></label><button className="button button-primary" onClick={downloadAll}><Archive size={16} /> Descargar ZIP</button><button className="button button-light" onClick={downloadPdfReport}><FileText size={16} /> Descargar PDF</button></div></div>
            <section className="matching-careers"><div><strong>Carreras con coincidencias para análisis conjunto</strong><span>Solo se agrupan nombres de carrera idénticos; la modalidad y el período se muestran como origen.</span></div>{matchingCareers.length ? <div className="matching-careers-list">{matchingCareers.map((career) => <div key={career.key}><strong>{career.label}</strong><span>{career.sources.join(' · ')}</span></div>)}</div> : <p>No hay carreras con el mismo nombre en más de una modalidad o período dentro de la carga actual.</p>}</section>
            <div className="cards-list">{questionStats.map((question) => <QuestionCard question={question} stats={question.stats} resolution={resolution} analysis={getAnalysisText(question)} onAnalysisChange={(text) => updateAnalysis(question, text)} key={question.key} />)}</div>
         </section>}
@@ -215,6 +218,12 @@ export default function GraficosEgresados() {
 
 function cleanFilename(value) {
   return String(value || 'todas').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '').toLowerCase() || 'todas'
+}
+
+function getReportCareerLabel(records, selectedCareer) {
+  if (selectedCareer === 'Todas') return 'Todas las carreras'
+  const labels = [...new Set(records.map((record) => getCareerDisplayLabel(record)).filter(Boolean))]
+  return labels.length === 1 ? labels[0] : labels.join(', ')
 }
 
 function getMatchingCareers(records) {

@@ -47,12 +47,20 @@ export function getRecordMetadata(record) {
   return { carreraOriginal: career, carreraGeneral, modalidad: getModalityLabel(modalidad), periodoAcademico: record.periodoAcademico || 'Sin período' }
 }
 
+export function getCareerDisplayLabel(record) {
+  const { carreraOriginal, modalidad } = getRecordMetadata(record)
+  const career = carreraOriginal.replace(/\s+online\s*$/i, '').trim()
+  if (modalidad === 'Online') return `${career} ONLINE`.trim()
+  if (modalidad === 'PVC') return `${career} PVC`.trim()
+  return career || 'Sin carrera'
+}
+
 export function getCareerFilterKey(record, mode) {
   const metadata = getRecordMetadata(record)
-  return mode === 'conjunto' ? normalizeText(metadata.carreraOriginal) : `${metadata.carreraGeneral} · ${metadata.modalidad}`
+  return mode === 'conjunto' ? normalizeText(metadata.carreraOriginal) : `${normalizeText(metadata.carreraOriginal)} · ${normalizeText(metadata.modalidad)}`
 }
 
 export function getCareerFilterLabel(record, mode) {
-  if (mode === 'conjunto') return getRecordMetadata(record).carreraOriginal
-  return getCareerFilterKey(record, mode)
+  if (mode === 'conjunto') return getCareerDisplayLabel(record)
+  return getCareerDisplayLabel(record)
 }
