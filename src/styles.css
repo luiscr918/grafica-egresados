@@ -76,6 +76,12 @@ h1 { font-size: clamp(32px, 5vw, 58px); line-height: 1.03; letter-spacing: -.04e
 .results-section { margin-top: 66px; }
 .results-toolbar { align-items: flex-end; margin-bottom: 26px; }
 .toolbar-controls { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.matching-careers { display: grid; gap: 12px; margin: 18px 0 22px; padding: 15px 17px; border: 1px solid #dbe5ec; border-radius: 8px; background: #f7fafc; color: #526779; }
+.matching-careers > div:first-child { display: grid; gap: 4px; }
+.matching-careers strong { color: #23394c; }
+.matching-careers span, .matching-careers p { margin: 0; font-size: 12px; line-height: 1.45; }
+.matching-careers-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.matching-careers-list > div { display: grid; gap: 3px; padding: 10px 12px; border-left: 3px solid #118dff; background: #fff; }
 .toolbar-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 700; color: #758696; }
 .field-help-button { display: inline-grid; place-items: center; width: 17px; height: 17px; padding: 0; border: 0; color: #118dff; background: transparent; vertical-align: -4px; }
 .field-help-button:hover { color: #0878df; }
@@ -91,6 +97,13 @@ h1 { font-size: clamp(32px, 5vw, 58px); line-height: 1.03; letter-spacing: -.04e
 .chart-wrap { position: relative; height: 285px; min-width: 0; }
 .pie-wrap { min-width: 0; }
 .empty-chart { min-height: 180px; display: grid; place-items: center; color: #8996a3; background: #f8fafc; border-radius: 6px; font-size: 13px; }
+.analysis-box { margin-top: 22px; padding-top: 18px; border-top: 1px solid #edf1f4; }
+.analysis-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 9px; }
+.analysis-heading div { display: grid; gap: 4px; }
+.analysis-heading strong { color: #23394c; font-size: 13px; }
+.analysis-heading span { color: #8492a0; font-size: 11px; }
+.analysis-heading .button { flex-shrink: 0; padding: 8px 11px; font-size: 11px; }
+.analysis-box textarea { width: 100%; min-height: 105px; resize: vertical; border: 1px solid #ccd9e3; border-radius: 6px; padding: 11px 12px; color: #334b60; background: #fbfcfd; outline-color: #118dff; font-size: 13px; line-height: 1.55; }
 .question-footer { border-top: 1px solid #edf1f4; color: #647589; font-size: 13px; font-weight: 700; margin-top: 16px; padding-top: 13px; display: flex; justify-content: space-between; }
 .question-footer span { display: inline-flex; align-items: center; gap: 6px; }
 .export-status { color: #218452; font-weight: 500; }
@@ -125,7 +138,7 @@ footer { border-top: 1px solid #dce6ed; color: #8b99a5; font-size: 11px; letter-
 .swal2-confirm { border-radius: 7px !important; background: #118dff !important; font-weight: 700 !important; }
 .swal2-cancel { border-radius: 7px !important; background: #eef2f5 !important; color: #53677b !important; font-weight: 700 !important; }
 @media (max-width: 800px) { .hero-content { padding: 45px 0 36px; } .section-intro, .results-toolbar { align-items: flex-start; flex-direction: column; } .toolbar-controls { justify-content: flex-start; } .charts-grid { grid-template-columns: 1fr; } .chart-wrap { height: 300px; } .question-heading { flex-direction: column; } .card-actions { width: 100%; } .card-actions .button { flex: 1; } }
-@media (max-width: 560px) { .workspace { padding: 38px 14px 60px; } .hero { padding-left: 18px; padding-right: 18px; } .hero-tools { align-items: flex-start; flex-direction: column; gap: 12px; } .upload-zone { flex-direction: column; text-align: center; } .upload-button { margin: 5px 0 0; } .summary-grid { grid-template-columns: 1fr; } .file-row { align-items: stretch; flex-direction: column; gap: 14px; } .career-field { align-items: flex-start; flex-direction: column; } .career-field input { width: 100%; min-width: 0; } .career-input-row { flex-wrap: wrap; } .career-review-help { margin-left: 0; } .toolbar-controls { width: 100%; flex-direction: column; align-items: stretch; } .toolbar-controls label, .toolbar-controls select, .toolbar-controls .button { width: 100%; } .question-card { padding: 18px 14px; } .question-heading h2 { font-size: 15px; } .guide-modal { padding: 22px 16px; border-radius: 13px; } .guide-heading h2 { font-size: 23px; } .guide-steps li { grid-template-columns: 22px 34px 1fr; gap: 8px; padding-right: 8px; } .guide-step-icon { width: 32px; height: 32px; } .guide-footer { align-items: stretch; flex-direction: column; } .guide-footer .button { width: 100%; } }
+@media (max-width: 560px) { .workspace { padding: 38px 14px 60px; } .hero { padding-left: 18px; padding-right: 18px; } .hero-tools { align-items: flex-start; flex-direction: column; gap: 12px; } .upload-zone { flex-direction: column; text-align: center; } .upload-button { margin: 5px 0 0; } .summary-grid { grid-template-columns: 1fr; } .file-row { align-items: stretch; flex-direction: column; gap: 14px; } .career-field { align-items: flex-start; flex-direction: column; } .career-field input { width: 100%; min-width: 0; } .career-input-row { flex-wrap: wrap; } .career-review-help { margin-left: 0; } .toolbar-controls { width: 100%; flex-direction: column; align-items: stretch; } .toolbar-controls label, .toolbar-controls select, .toolbar-controls .button { width: 100%; } .question-card { padding: 18px 14px; } .question-heading h2 { font-size: 15px; } .analysis-heading { align-items: stretch; flex-direction: column; } .analysis-heading .button { width: 100%; } .guide-modal { padding: 22px 16px; border-radius: 13px; } .guide-heading h2 { font-size: 23px; } .guide-steps li { grid-template-columns: 22px 34px 1fr; gap: 8px; padding-right: 8px; } .guide-step-icon { width: 32px; height: 32px; } .guide-footer { align-items: stretch; flex-direction: column; } .guide-footer .button { width: 100%; } }
 
 .portal-header { background: #122b42; color: #fff; padding: 18px max(24px, calc((100vw - 1240px) / 2)); }
 .portal-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1240px; margin: auto; }

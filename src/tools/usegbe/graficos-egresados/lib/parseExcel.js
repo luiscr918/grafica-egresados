@@ -8,19 +8,22 @@ function findHeader(headers, candidates) {
   return headers.find((header) => candidates.includes(normalizeHeader(header)))
 }
 
-function emptyRecord(id, career) {
-  return { numeroIdentificacion: id, carrera: career, ...Object.fromEntries(requiredKeys.map((key) => [key, ''])) }
+function emptyRecord(id, career, modalidad = '', periodoAcademico = '') {
+  return { numeroIdentificacion: id, carrera: career, carreraOriginal: career, modalidad, periodoAcademico, ...Object.fromEntries(requiredKeys.map((key) => [key, ''])) }
 }
 
 function parseWide(rows, headers, fileName) {
   const idHeader = findHeader(headers, ['numeroidentificacion', 'identificacion', 'cedula', 'cedulaidentidad'])
   const careerHeader = findHeader(headers, ['carrera', 'programa', 'nombrecarrera', 'nombrecarreraestudiada', 'carreraestudiada', 'programaestudio', 'nombreprograma'])
+  const modalityHeader = findHeader(headers, ['modalidad', 'tipomodalidad'])
+  const periodHeader = findHeader(headers, ['periodoacademico', 'periodo', 'periodolectivo'])
   const missing = requiredKeys.filter((key) => !findHeader(headers, [normalizeHeader(key)]))
   if (!idHeader) return { records: [], errors: [`${fileName}: falta la columna numeroIdentificacion.`], warnings: [], format: null }
   if (missing.length) return { records: [], errors: [`${fileName}: faltan columnas: ${missing.join(', ')}.`], warnings: [], format: null }
 
   const records = rows.map((row) => {
-    const record = emptyRecord(toIdString(row[idHeader]), careerHeader ? cleanValue(row[careerHeader]) : '')
+    const career = careerHeader ? cleanValue(row[careerHeader]) : ''
+    const record = emptyRecord(toIdString(row[idHeader]), career, modalityHeader ? cleanValue(row[modalityHeader]) : '', periodHeader ? cleanValue(row[periodHeader]) : '')
     for (const key of requiredKeys) {
       const header = findHeader(headers, [normalizeHeader(key)])
       record[key] = cleanValue(row[header])
@@ -36,6 +39,8 @@ function parseLong(rows, headers, fileName) {
   const questionHeader = findHeader(headers, ['descripcionpregunta', 'pregunta', 'descripcion'])
   const answerHeader = findHeader(headers, ['respuesta', 'answer'])
   const careerHeader = findHeader(headers, ['carrera', 'programa', 'nombrecarrera', 'nombrecarreraestudiada', 'carreraestudiada', 'programaestudio', 'nombreprograma'])
+  const modalityHeader = findHeader(headers, ['modalidad', 'tipomodalidad'])
+  const periodHeader = findHeader(headers, ['periodoacademico', 'periodo', 'periodolectivo'])
   const errors = []
   if (!idHeader) errors.push(`${fileName}: falta la columna numeroIdentificacion.`)
   if (!questionHeader) errors.push(`${fileName}: falta la columna descripcionPregunta.`)
@@ -54,11 +59,12 @@ function parseLong(rows, headers, fileName) {
       continue
     }
     if (matched.approximate) warnings.push(`${fileName}: pregunta asociada por coincidencia aproximada: ${String(row[questionHeader]).trim()}`)
-    if (!grouped.has(id)) grouped.set(id, emptyRecord(id, careerHeader ? cleanValue(row[careerHeader]) : ''))
+    if (!grouped.has(id)) grouped.set(id, emptyRecord(id, careerHeader ? cleanValue(row[careerHeader]) : '', modalityHeader ? cleanValue(row[modalityHeader]) : '', periodHeader ? cleanValue(row[periodHeader]) : ''))
     const record = grouped.get(id)
     if (record[matched.key]) repeatedAnswers += 1
     record[matched.key] = cleanValue(row[answerHeader])
     if (careerHeader && !record.carrera) record.carrera = cleanValue(row[careerHeader])
+    if (careerHeader && !record.carreraOriginal) record.carreraOriginal = cleanValue(row[careerHeader])
   }
   if (repeatedAnswers) warnings.push(`${fileName}: se descartaron ${repeatedAnswers} respuestas repetidas para la misma persona y pregunta.`)
   return { records: [...grouped.values()], errors: [], warnings, format: 'largo' }

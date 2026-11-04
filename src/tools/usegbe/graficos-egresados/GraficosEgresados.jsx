@@ -5,6 +5,8 @@ import QuestionCard from './components/QuestionCard'
 import { careerOptions, questions } from './lib/questions'
 import { parseExcelFile } from './lib/parseExcel'
 import { getStats } from './lib/stats'
+import { generateAnalysis } from './lib/analysis'
+import { getCareerFilterKey, getCareerFilterLabel, getModality } from './lib/careerCatalog'
 import { downloadPdf, downloadZip, renderQuestionPng } from './lib/exportImage'
 import { closeAlert, confirmAction, notifyError, notifyInfo, notifySuccess, showCareerHelp, showLoading, showResolutionHelp } from './lib/alerts'
 
@@ -24,10 +26,13 @@ const guideSteps = [
 export default function GraficosEgresados() {
   const [files, setFiles] = useState([])
   const [selectedCareer, setSelectedCareer] = useState('Todas')
+  const [viewMode, setViewMode] = useState('individual')
+  const [selectedPeriod, setSelectedPeriod] = useState('Todos')
   const [resolution, setResolution] = useState(2)
   const [loading, setLoading] = useState(false)
   const [globalMessage, setGlobalMessage] = useState('')
   const [showGuide, setShowGuide] = useState(false)
+  const [analysisOverrides, setAnalysisOverrides] = useState({})
 
   async function handleFiles(incomingFiles) {
     const excelFiles = incomingFiles.filter((file) => file.name.toLowerCase().endsWith('.xlsx'))
@@ -48,7 +53,9 @@ export default function GraficosEgresados() {
         return { ...result, career, hasMultipleCareers, careerNeedsReview: !detectedCareer, records }
       })
       setFiles(nextFiles)
+      setAnalysisOverrides({})
       setSelectedCareer('Todas')
+      setSelectedPeriod('Todos')
       notifySuccess(`${nextFiles.length} archivo${nextFiles.length === 1 ? '' : 's'} cargado${nextFiles.length === 1 ? '' : 's'}`)
     } catch (error) {
       notifyError('No se pudieron leer los archivos', error instanceof Error ? error.message : 'Verifica que los archivos sean XLSX válidos.')
@@ -67,7 +74,7 @@ export default function GraficosEgresados() {
     if (!result.isConfirmed) return
     const next = files.filter((_, fileIndex) => fileIndex !== index)
     setFiles(next)
-    if (next.length === 0 || !next.some((file) => file.career === selectedCareer)) setSelectedCareer('Todas')
+    if (next.length === 0 || !next.some((file) => file.records.some((record) => selectedCareer === 'Todas' || getCareerFilterKey(record, viewMode) === selectedCareer))) setSelectedCareer('Todas')
     notifyInfo('Archivo quitado de la carga')
   }
 
@@ -75,25 +82,54 @@ export default function GraficosEgresados() {
     const result = await confirmAction('¿Limpiar todos los archivos?', 'Se quitarán los archivos y los resultados de la vista actual.', 'Limpiar carga')
     if (!result.isConfirmed) return
     setFiles([])
+    setAnalysisOverrides({})
     setSelectedCareer('Todas')
+    setSelectedPeriod('Todos')
     setGlobalMessage('')
     notifyInfo('Carga limpiada')
   }
 
   const allRecords = useMemo(() => files.flatMap((file) => file.records), [files])
-  const careers = useMemo(() => [...new Set(allRecords.map((record) => record.carrera).filter(Boolean))].sort(), [allRecords])
-  const visibleRecords = useMemo(() => selectedCareer === 'Todas' ? allRecords : allRecords.filter((record) => record.carrera === selectedCareer), [allRecords, selectedCareer])
+  const periods = useMemo(() => [...new Set(allRecords.map((record) => record.periodoAcademico).filter(Boolean))].sort(), [allRecords])
+  const periodRecords = useMemo(() => allRecords.filter((record) => selectedPeriod === 'Todos' || record.periodoAcademico === selectedPeriod), [allRecords, selectedPeriod])
+  const careerChoices = useMemo(() => {
+    const choices = new Map()
+    for (const record of periodRecords) {
+      const key = getCareerFilterKey(record, viewMode)
+      if (!choices.has(key)) choices.set(key, getCareerFilterLabel(record, viewMode))
+    }
+    return [...choices.entries()]
+      .filter(([key]) => viewMode === 'individual' || coincidentCareerKeys(periodRecords).has(key))
+      .sort(([, labelA], [, labelB]) => labelA.localeCompare(labelB, 'es'))
+      .map(([key, label]) => ({ key, label }))
+  }, [periodRecords, viewMode])
+  const matchingCareers = useMemo(() => getMatchingCareers(allRecords), [allRecords])
+  const visibleRecords = useMemo(() => periodRecords.filter((record) => selectedCareer === 'Todas' || getCareerFilterKey(record, viewMode) === selectedCareer), [periodRecords, selectedCareer, viewMode])
   const totalDuplicates = useMemo(() => files.reduce((sum, file) => sum + (file.duplicates || 0), 0), [files])
   const questionStats = useMemo(() => questions.map((question, index) => ({ ...question, number: index + 1, stats: getStats(visibleRecords, question) })), [visibleRecords])
   const errors = files.flatMap((file) => file.errors || [])
   const warnings = files.flatMap((file) => file.warnings || [])
+
+  function getAnalysisText(question) {
+    const key = `${viewMode}:${selectedPeriod}:${selectedCareer}:${question.key}`
+    const selectedLabel = careerChoices.find((choice) => choice.key === selectedCareer)?.label
+    const careerLabel = selectedCareer === 'Todas' ? '' : viewMode === 'individual' && selectedLabel?.includes(' · ')
+      ? `en la carrera de ${selectedLabel.split(' · ')[0]}${selectedLabel.split(' · ')[1] === 'Normal' ? '' : `, modalidad ${selectedLabel.split(' · ')[1]}`}`
+      : `en la carrera de ${selectedLabel || selectedCareer}`
+    return analysisOverrides[key] ?? generateAnalysis(question, question.stats, { careerLabel })
+  }
+
+  function updateAnalysis(question, text) {
+    const key = `${viewMode}:${selectedPeriod}:${selectedCareer}:${question.key}`
+    setAnalysisOverrides((current) => ({ ...current, [key]: text }))
+  }
 
   async function buildExportItems() {
     const items = []
     for (const question of questionStats) {
       if (!question.stats.total) continue
       const dataUrl = await renderQuestionPng(question, question.stats, resolution)
-      items.push({ dataUrl, filename: `${String(question.number).padStart(2, '0')}_${question.key}_${cleanFilename(selectedCareer)}.png` })
+      items.push({ dataUrl, analysis: getAnalysisText(question), filename: `${String(question.number).padStart(2, '0')}_${question.key}_${cleanFilename(selectedCareer)}_${cleanFilename(selectedPeriod)}.png` })
     }
     return items
   }
@@ -106,7 +142,7 @@ export default function GraficosEgresados() {
     showLoading('Preparando imágenes...')
     try {
       const items = await buildExportItems()
-      await downloadZip(items, `graficos_${cleanFilename(selectedCareer)}.zip`)
+      await downloadZip(items, `graficos_${cleanFilename(selectedCareer)}_${cleanFilename(selectedPeriod)}.zip`)
       closeAlert()
       notifySuccess('ZIP descargado correctamente')
     } catch (error) {
@@ -123,8 +159,8 @@ export default function GraficosEgresados() {
     showLoading('Preparando PDF...')
     try {
       const items = await buildExportItems()
-      const reportTitle = selectedCareer === 'Todas' ? 'Consolidado institucional · Todas las carreras' : `Carrera: ${selectedCareer}`
-      downloadPdf(items, `graficos_${cleanFilename(selectedCareer)}.pdf`, reportTitle, visibleRecords.length)
+      const reportTitle = `${selectedCareer === 'Todas' ? 'Consolidado institucional · Todas las carreras' : `${viewMode === 'conjunto' ? 'Carrera general' : 'Carrera y modalidad'}: ${selectedCareer}`} · Período: ${selectedPeriod === 'Todos' ? 'todos' : selectedPeriod}`
+      downloadPdf(items, `graficos_${cleanFilename(selectedCareer)}_${cleanFilename(selectedPeriod)}.pdf`, reportTitle, visibleRecords.length)
       closeAlert()
       notifySuccess('PDF descargado correctamente')
     } catch (error) {
@@ -167,8 +203,9 @@ export default function GraficosEgresados() {
         </>}
 
         {files.length > 0 && allRecords.length > 0 && <section className="results-section">
-            <div className="results-toolbar"><div><p className="eyebrow">02 / Resultados</p><h2>Gráficos por pregunta</h2><p>{visibleRecords.length} egresados en la vista actual.</p></div><div className="toolbar-controls"><label><span>Vista por carrera</span><select value={selectedCareer} onChange={(event) => setSelectedCareer(event.target.value)}><option value="Todas">Consolidado institucional (todas)</option>{careers.map((career) => <option value={career} key={career}>{career}</option>)}</select></label><label className="resolution-field"><span>Resolución de exportación <button className="field-help-button" type="button" aria-label="Ayuda sobre resolución" onClick={showResolutionHelp}><CircleHelp size={14} /></button></span><select title="Solo cambia la calidad de las imágenes exportadas" value={resolution} onChange={(event) => setResolution(Number(event.target.value))}><option value="1">1x</option><option value="2">2x (recomendada)</option><option value="3">3x</option></select></label><button className="button button-primary" onClick={downloadAll}><Archive size={16} /> Descargar ZIP</button><button className="button button-light" onClick={downloadPdfReport}><FileText size={16} /> Descargar PDF</button></div></div>
-          <div className="cards-list">{questionStats.map((question) => <QuestionCard question={question} stats={question.stats} resolution={resolution} key={question.key} />)}</div>
+           <div className="results-toolbar"><div><p className="eyebrow">02 / Resultados</p><h2>Gráficos por pregunta</h2><p>{visibleRecords.length} egresados en la vista actual.</p></div><div className="toolbar-controls"><label><span>Tipo de análisis</span><select value={viewMode} onChange={(event) => { const nextMode = event.target.value; setViewMode(nextMode); setSelectedCareer('Todas'); if (nextMode === 'conjunto') setSelectedPeriod('Todos') }}><option value="individual">Individual por modalidad</option><option value="conjunto">Análisis conjunto por carrera</option></select></label><label><span>Período académico</span><select value={selectedPeriod} onChange={(event) => { setSelectedPeriod(event.target.value); setSelectedCareer('Todas') }}><option value="Todos">Todos los períodos</option>{periods.map((period) => <option value={period} key={period}>{period}</option>)}</select></label><label><span>{viewMode === 'conjunto' ? 'Carrera coincidente' : 'Carrera y modalidad'}</span><select value={selectedCareer} onChange={(event) => setSelectedCareer(event.target.value)}><option value="Todas">Todas</option>{careerChoices.map((choice) => <option value={choice.key} key={choice.key}>{choice.label}</option>)}</select></label><label className="resolution-field"><span>Resolución de exportación <button className="field-help-button" type="button" aria-label="Ayuda sobre resolución" onClick={showResolutionHelp}><CircleHelp size={14} /></button></span><select title="Solo cambia la calidad de las imágenes exportadas" value={resolution} onChange={(event) => setResolution(Number(event.target.value))}><option value="1">1x</option><option value="2">2x (recomendada)</option><option value="3">3x</option></select></label><button className="button button-primary" onClick={downloadAll}><Archive size={16} /> Descargar ZIP</button><button className="button button-light" onClick={downloadPdfReport}><FileText size={16} /> Descargar PDF</button></div></div>
+           <section className="matching-careers"><div><strong>Carreras con coincidencias para análisis conjunto</strong><span>Solo se agrupan nombres de carrera idénticos; la modalidad y el período se muestran como origen.</span></div>{matchingCareers.length ? <div className="matching-careers-list">{matchingCareers.map((career) => <div key={career.key}><strong>{career.label}</strong><span>{career.sources.join(' · ')}</span></div>)}</div> : <p>No hay carreras con el mismo nombre en más de una modalidad o período dentro de la carga actual.</p>}</section>
+           <div className="cards-list">{questionStats.map((question) => <QuestionCard question={question} stats={question.stats} resolution={resolution} analysis={getAnalysisText(question)} onAnalysisChange={(text) => updateAnalysis(question, text)} key={question.key} />)}</div>
         </section>}
       </section>
       {showGuide && <div className="guide-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setShowGuide(false)}><section className="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title"><div className="guide-heading"><div className="guide-title-block"><div className="guide-title-icon"><BookOpen size={21} /></div><div><p className="eyebrow">Guía rápida</p><h2 id="guide-title">Del Excel al informe</h2><p>Un flujo sencillo para preparar tus gráficos institucionales.</p></div></div><button className="guide-close-icon" type="button" aria-label="Cerrar guía" onClick={() => setShowGuide(false)}><X size={19} /></button></div><ol className="guide-steps">{guideSteps.map(({ icon: Icon, title, text }, index) => <li key={title}><div className="guide-step-number">{String(index + 1).padStart(2, '0')}</div><div className="guide-step-icon"><Icon size={19} strokeWidth={2} /></div><div className="guide-step-copy"><strong>{title}</strong><span>{text}</span></div></li>)}</ol><div className="guide-note"><AlertTriangle size={18} /><div><strong>Evita duplicar respuestas</strong><span>No cargues al mismo tiempo dos versiones del mismo conjunto de datos, porque se contarían dos veces.</span></div></div><div className="guide-footer"><div><CheckCircle2 size={17} /><span>Todo se procesa localmente en tu navegador.</span></div><button className="button button-primary guide-close" type="button" onClick={() => setShowGuide(false)}>Entendido</button></div></section></div>}
@@ -178,4 +215,23 @@ export default function GraficosEgresados() {
 
 function cleanFilename(value) {
   return String(value || 'todas').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '').toLowerCase() || 'todas'
+}
+
+function getMatchingCareers(records) {
+  const groups = new Map()
+  for (const record of records) {
+    const key = getCareerFilterKey(record, 'conjunto')
+    if (!key) continue
+    if (!groups.has(key)) groups.set(key, { key, label: getCareerFilterLabel(record, 'conjunto'), sources: new Set() })
+    const modality = getModality(record.modalidad, record.carreraOriginal || record.carrera)
+    groups.get(key).sources.add(`${modality} · ${record.periodoAcademico || 'Sin período'}`)
+  }
+  return [...groups.values()]
+    .filter((group) => group.sources.size > 1)
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+    .map((group) => ({ ...group, sources: [...group.sources].sort((a, b) => a.localeCompare(b, 'es')) }))
+}
+
+function coincidentCareerKeys(records) {
+  return new Set(getMatchingCareers(records).map((career) => career.key))
 }

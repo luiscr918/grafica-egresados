@@ -103,7 +103,7 @@ export function downloadPdf(items, filename, reportTitle, recordCount) {
   const pageWidth = document.internal.pageSize.getWidth()
   const pageHeight = document.internal.pageSize.getHeight()
   const margin = 8
-  const imageWidth = pageWidth - margin * 2
+  const imageWidth = 250
   const imageHeight = imageWidth * 540 / 920
 
   document.setFillColor(18, 43, 66)
@@ -123,10 +123,18 @@ export function downloadPdf(items, filename, reportTitle, recordCount) {
   document.setFontSize(12)
   document.text(`${recordCount} egresados · ${new Date().toLocaleDateString('es-EC')}`, 24, 112 + (titleLines.length - 1) * 8)
 
-  items.forEach((item, index) => {
+  items.forEach((item) => {
     document.addPage()
-    const y = Math.max(margin, (pageHeight - imageHeight) / 2)
-    document.addImage(item.dataUrl, 'PNG', margin, y, imageWidth, imageHeight, undefined, 'FAST')
+    const imageX = (pageWidth - imageWidth) / 2
+    document.addImage(item.dataUrl, 'PNG', imageX, margin, imageWidth, imageHeight, undefined, 'FAST')
+    document.setTextColor(35, 57, 76)
+    document.setFont('helvetica', 'bold')
+    document.setFontSize(10)
+    document.text('Análisis', margin, 163)
+    document.setFont('helvetica', 'normal')
+    document.setFontSize(9)
+    const analysisLines = document.splitTextToSize(item.analysis || '', pageWidth - margin * 2)
+    document.text(analysisLines, margin, 170, { lineHeightFactor: 1.35 })
   })
   document.save(filename)
 }
