@@ -8,7 +8,7 @@ Portal único para las herramientas internas de USEGBE, URI y UFC. Todo el proce
 - **URI:** área preparada para futuras herramientas.
 - **UFC:** área preparada para futuras herramientas.
 
-El generador de gráficos conserva la carga de Excel ancho y largo, normalización, detección de duplicados, gráficos por pregunta/carrera, exportación PNG, copia de imágenes y descarga ZIP.
+El generador de gráficos conserva la carga de Excel ancho y largo, incluyendo un solo archivo con varias carreras, normalización, detección de duplicados, gráficos por pregunta/carrera, exportación PNG, copia de imágenes y descarga de ZIP y PDF. Todo se procesa localmente en el navegador.
 
 La herramienta **Solicitud de marketing – Bolsa de empleo** analiza el correo de ITSQMET, propone los datos del requerimiento, permite editarlos, genera una vista previa y descarga un `.docx` con hipervínculos e imágenes opcionales.
 
@@ -57,4 +57,4 @@ git push
 
 ## Tecnologías
 
-React 19, Vite 6, React Router, Tailwind CSS, Lucide React, SweetAlert2, Chart.js, XLSX, JSZip, FileSaver y docx.
+React 19, Vite 6, React Router, Tailwind CSS, Lucide React, SweetAlert2, Chart.js, XLSX, JSZip, jsPDF, FileSaver y docx.

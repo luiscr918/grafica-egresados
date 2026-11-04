@@ -2,6 +2,7 @@ import { Chart, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Leg
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { jsPDF } from 'jspdf'
 import { formatPercent } from './stats'
 
 Chart.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels)
@@ -95,4 +96,37 @@ export async function downloadZip(items, filename) {
   }
   const blob = await zip.generateAsync({ type: 'blob' })
   saveAs(blob, filename)
+}
+
+export function downloadPdf(items, filename, reportTitle, recordCount) {
+  const document = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true })
+  const pageWidth = document.internal.pageSize.getWidth()
+  const pageHeight = document.internal.pageSize.getHeight()
+  const margin = 8
+  const imageWidth = pageWidth - margin * 2
+  const imageHeight = imageWidth * 540 / 920
+
+  document.setFillColor(18, 43, 66)
+  document.rect(0, 0, pageWidth, pageHeight, 'F')
+  document.setTextColor(125, 186, 240)
+  document.setFont('helvetica', 'bold')
+  document.setFontSize(11)
+  document.text('ITSQMET · USEGBE', 24, 28)
+  document.setTextColor(255, 255, 255)
+  document.setFontSize(27)
+  document.text('Gráficos de seguimiento a egresados', 24, 78)
+  document.setTextColor(183, 201, 218)
+  document.setFont('helvetica', 'normal')
+  document.setFontSize(17)
+  const titleLines = document.splitTextToSize(reportTitle, pageWidth - 48)
+  document.text(titleLines, 24, 94)
+  document.setFontSize(12)
+  document.text(`${recordCount} egresados · ${new Date().toLocaleDateString('es-EC')}`, 24, 112 + (titleLines.length - 1) * 8)
+
+  items.forEach((item, index) => {
+    document.addPage()
+    const y = Math.max(margin, (pageHeight - imageHeight) / 2)
+    document.addImage(item.dataUrl, 'PNG', margin, y, imageWidth, imageHeight, undefined, 'FAST')
+  })
+  document.save(filename)
 }

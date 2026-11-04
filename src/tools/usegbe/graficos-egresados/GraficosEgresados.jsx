@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Archive, BookOpen, CheckCircle2, CircleHelp, CopyX, Download, FileSpreadsheet, FileStack, Layers3, ShieldCheck, SlidersHorizontal, Trash2, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, Archive, BookOpen, CheckCircle2, CircleHelp, CopyX, Download, FileSpreadsheet, FileStack, FileText, Layers3, ShieldCheck, SlidersHorizontal, Trash2, Upload, UsersRound, X } from 'lucide-react'
 import UploadZone from './components/UploadZone'
 import QuestionCard from './components/QuestionCard'
 import { careerOptions, questions } from './lib/questions'
 import { parseExcelFile } from './lib/parseExcel'
 import { getStats } from './lib/stats'
-import { downloadZip, renderQuestionPng } from './lib/exportImage'
+import { downloadPdf, downloadZip, renderQuestionPng } from './lib/exportImage'
 import { closeAlert, confirmAction, notifyError, notifyInfo, notifySuccess, showCareerHelp, showLoading, showResolutionHelp } from './lib/alerts'
 
 function defaultCareer(fileName, records) {
@@ -15,10 +15,10 @@ function defaultCareer(fileName, records) {
 
 const guideSteps = [
   { icon: Upload, title: 'Carga tus archivos', text: 'Selecciona uno o varios archivos XLSX de seguimiento. La aplicación admite formato ancho y formato largo.' },
-  { icon: FileSpreadsheet, title: 'Asigna la carrera', text: 'Escribe la carrera correspondiente en “Carrera de este archivo”. Usa un archivo por carrera para generar el consolidado correctamente.' },
+  { icon: FileSpreadsheet, title: 'Revisa las carreras', text: 'La aplicación detecta la carrera en cada fila del Excel consolidado. En archivos sin carrera, escribe la carrera correspondiente.' },
   { icon: Layers3, title: 'Explora los resultados', text: 'Consulta una carrera específica o cambia a “Consolidado institucional (todas)” para ver la suma de todas las carreras cargadas.' },
   { icon: SlidersHorizontal, title: 'Elige la exportación', text: 'La resolución 1x, 2x o 3x solo cambia la calidad de los archivos exportados. 2x es la opción recomendada.' },
-  { icon: Download, title: 'Descarga tu informe', text: 'Descarga cada gráfico como PNG, copia una imagen al portapapeles o genera todos los gráficos en un ZIP.' },
+  { icon: Download, title: 'Descarga tu informe', text: 'Descarga cada gráfico como PNG, copia una imagen al portapapeles o genera todos los gráficos en ZIP y PDF.' },
 ]
 
 export default function GraficosEgresados() {
@@ -40,9 +40,12 @@ export default function GraficosEgresados() {
     try {
       const parsed = await Promise.all(excelFiles.map((file) => parseExcelFile(file)))
       const nextFiles = parsed.map((result) => {
-        const detectedCareer = result.records.find((record) => record.carrera)?.carrera?.trim()
-        const career = detectedCareer || defaultCareer(result.fileName, result.records)
-        return { ...result, career, careerNeedsReview: !detectedCareer, records: result.records.map((record) => ({ ...record, carrera: career })) }
+        const detectedCareers = [...new Set(result.records.map((record) => record.carrera?.trim()).filter(Boolean))]
+        const hasMultipleCareers = detectedCareers.length > 1
+        const detectedCareer = detectedCareers[0]
+        const career = hasMultipleCareers ? 'Varias carreras' : detectedCareer || defaultCareer(result.fileName, result.records)
+        const records = hasMultipleCareers ? result.records : result.records.map((record) => ({ ...record, carrera: career }))
+        return { ...result, career, hasMultipleCareers, careerNeedsReview: !detectedCareer, records }
       })
       setFiles(nextFiles)
       setSelectedCareer('Todas')
@@ -55,7 +58,7 @@ export default function GraficosEgresados() {
   }
 
   function updateCareer(index, career) {
-    setFiles((current) => current.map((file, fileIndex) => fileIndex === index ? { ...file, career, careerNeedsReview: !career.trim(), records: file.records.map((record) => ({ ...record, carrera: career })) } : file))
+    setFiles((current) => current.map((file, fileIndex) => fileIndex === index && !file.hasMultipleCareers ? { ...file, career, careerNeedsReview: !career.trim(), records: file.records.map((record) => ({ ...record, carrera: career })) } : file))
   }
 
   async function removeFile(index) {
@@ -78,32 +81,55 @@ export default function GraficosEgresados() {
   }
 
   const allRecords = useMemo(() => files.flatMap((file) => file.records), [files])
-  const careers = useMemo(() => [...new Set(files.map((file) => file.career).filter(Boolean))], [files])
+  const careers = useMemo(() => [...new Set(allRecords.map((record) => record.carrera).filter(Boolean))].sort(), [allRecords])
   const visibleRecords = useMemo(() => selectedCareer === 'Todas' ? allRecords : allRecords.filter((record) => record.carrera === selectedCareer), [allRecords, selectedCareer])
   const totalDuplicates = useMemo(() => files.reduce((sum, file) => sum + (file.duplicates || 0), 0), [files])
   const questionStats = useMemo(() => questions.map((question, index) => ({ ...question, number: index + 1, stats: getStats(visibleRecords, question) })), [visibleRecords])
   const errors = files.flatMap((file) => file.errors || [])
   const warnings = files.flatMap((file) => file.warnings || [])
 
+  async function buildExportItems() {
+    const items = []
+    for (const question of questionStats) {
+      if (!question.stats.total) continue
+      const dataUrl = await renderQuestionPng(question, question.stats, resolution)
+      items.push({ dataUrl, filename: `${String(question.number).padStart(2, '0')}_${question.key}_${cleanFilename(selectedCareer)}.png` })
+    }
+    return items
+  }
+
   async function downloadAll() {
     if (!questionStats.some((question) => question.stats.total)) {
       notifyError('No hay gráficos para descargar', 'No existen respuestas válidas en la vista actual.')
       return
     }
-    showLoading('Preparando ZIP...')
+    showLoading('Preparando imágenes...')
     try {
-      const items = []
-      for (const question of questionStats) {
-        if (!question.stats.total) continue
-        const dataUrl = await renderQuestionPng(question, question.stats, resolution)
-        items.push({ dataUrl, filename: `${String(question.number).padStart(2, '0')}_${question.key}_${cleanFilename(selectedCareer)}.png` })
-      }
+      const items = await buildExportItems()
       await downloadZip(items, `graficos_${cleanFilename(selectedCareer)}.zip`)
       closeAlert()
       notifySuccess('ZIP descargado correctamente')
     } catch (error) {
       closeAlert()
       notifyError('No se pudo generar el ZIP', error instanceof Error ? error.message : 'Intenta nuevamente.')
+    }
+  }
+
+  async function downloadPdfReport() {
+    if (!questionStats.some((question) => question.stats.total)) {
+      notifyError('No hay gráficos para descargar', 'No existen respuestas válidas en la vista actual.')
+      return
+    }
+    showLoading('Preparando PDF...')
+    try {
+      const items = await buildExportItems()
+      const reportTitle = selectedCareer === 'Todas' ? 'Consolidado institucional · Todas las carreras' : `Carrera: ${selectedCareer}`
+      downloadPdf(items, `graficos_${cleanFilename(selectedCareer)}.pdf`, reportTitle, visibleRecords.length)
+      closeAlert()
+      notifySuccess('PDF descargado correctamente')
+    } catch (error) {
+      closeAlert()
+      notifyError('No se pudo generar el PDF', error instanceof Error ? error.message : 'Intenta nuevamente.')
     }
   }
 
@@ -133,7 +159,7 @@ export default function GraficosEgresados() {
           </div>
            <div className="file-list">
              <div className="subsection-heading"><h3>Archivos y carrera asignada</h3><span>{files.length} cargado{files.length === 1 ? '' : 's'}</span></div>
-             {files.map((file, index) => <div className="file-row" key={`${file.fileName}-${index}`}><div className="file-name"><span className="file-type"><FileSpreadsheet size={12} /> XLSX</span><div><strong>{file.fileName}</strong><small>{file.format ? `Formato ${file.format}` : 'No reconocido'}</small></div><button className="remove-file" type="button" aria-label={`Quitar ${file.fileName}`} title="Quitar archivo" onClick={() => removeFile(index)}><X size={15} /></button></div><label className={`career-field ${file.careerNeedsReview ? 'career-field-review' : ''}`}><span>Carrera de este archivo</span><div className="career-input-row"><input className={file.careerNeedsReview ? 'career-input-review' : ''} list="careers" value={file.career} aria-describedby={file.careerNeedsReview ? `career-help-${index}` : undefined} onChange={(event) => updateCareer(index, event.target.value)} /><button className="career-guide-button" type="button" onClick={showCareerHelp}><BookOpen size={14} /> ¿Qué debo poner?</button></div>{file.careerNeedsReview && <small className="career-review-help" id={`career-help-${index}`}><AlertTriangle size={13} /> Revisa y reemplaza el nombre provisional del archivo.</small>}</label></div>)}
+              {files.map((file, index) => <div className="file-row" key={`${file.fileName}-${index}`}><div className="file-name"><span className="file-type"><FileSpreadsheet size={12} /> XLSX</span><div><strong>{file.fileName}</strong><small>{file.format ? `Formato ${file.format}` : 'No reconocido'}</small></div><button className="remove-file" type="button" aria-label={`Quitar ${file.fileName}`} title="Quitar archivo" onClick={() => removeFile(index)}><X size={15} /></button></div><label className={`career-field ${file.careerNeedsReview ? 'career-field-review' : ''}`}><span>{file.hasMultipleCareers ? 'Carreras detectadas' : 'Carrera de este archivo'}</span><div className="career-input-row"><input className={file.careerNeedsReview ? 'career-input-review' : ''} list="careers" value={file.career} readOnly={file.hasMultipleCareers} aria-describedby={file.careerNeedsReview ? `career-help-${index}` : undefined} onChange={(event) => updateCareer(index, event.target.value)} />{!file.hasMultipleCareers && <button className="career-guide-button" type="button" onClick={showCareerHelp}><BookOpen size={14} /> ¿Qué debo poner?</button>}</div>{file.hasMultipleCareers && <small className="career-review-help career-detected-help"><CheckCircle2 size={13} /> Se conservaron las carreras de cada registro.</small>}{file.careerNeedsReview && <small className="career-review-help" id={`career-help-${index}`}><AlertTriangle size={13} /> Revisa y reemplaza el nombre provisional del archivo.</small>}</label></div>)}
             <datalist id="careers">{careerOptions.map((career) => <option value={career} key={career} />)}</datalist>
           </div>
           {errors.map((error) => <div className="message message-error" key={error}>{error}</div>)}
@@ -141,7 +167,7 @@ export default function GraficosEgresados() {
         </>}
 
         {files.length > 0 && allRecords.length > 0 && <section className="results-section">
-            <div className="results-toolbar"><div><p className="eyebrow">02 / Resultados</p><h2>Gráficos por pregunta</h2><p>{visibleRecords.length} egresados en la vista actual.</p></div><div className="toolbar-controls"><label><span>Vista por carrera</span><select value={selectedCareer} onChange={(event) => setSelectedCareer(event.target.value)}><option value="Todas">Consolidado institucional (todas)</option>{careers.map((career) => <option value={career} key={career}>{career}</option>)}</select></label><label className="resolution-field"><span>Resolución de exportación <button className="field-help-button" type="button" aria-label="Ayuda sobre resolución" onClick={showResolutionHelp}><CircleHelp size={14} /></button></span><select title="Solo cambia la calidad de las imágenes exportadas" value={resolution} onChange={(event) => setResolution(Number(event.target.value))}><option value="1">1x</option><option value="2">2x (recomendada)</option><option value="3">3x</option></select></label><button className="button button-primary" onClick={downloadAll}><Archive size={16} /> Descargar todo (ZIP)</button></div></div>
+            <div className="results-toolbar"><div><p className="eyebrow">02 / Resultados</p><h2>Gráficos por pregunta</h2><p>{visibleRecords.length} egresados en la vista actual.</p></div><div className="toolbar-controls"><label><span>Vista por carrera</span><select value={selectedCareer} onChange={(event) => setSelectedCareer(event.target.value)}><option value="Todas">Consolidado institucional (todas)</option>{careers.map((career) => <option value={career} key={career}>{career}</option>)}</select></label><label className="resolution-field"><span>Resolución de exportación <button className="field-help-button" type="button" aria-label="Ayuda sobre resolución" onClick={showResolutionHelp}><CircleHelp size={14} /></button></span><select title="Solo cambia la calidad de las imágenes exportadas" value={resolution} onChange={(event) => setResolution(Number(event.target.value))}><option value="1">1x</option><option value="2">2x (recomendada)</option><option value="3">3x</option></select></label><button className="button button-primary" onClick={downloadAll}><Archive size={16} /> Descargar ZIP</button><button className="button button-light" onClick={downloadPdfReport}><FileText size={16} /> Descargar PDF</button></div></div>
           <div className="cards-list">{questionStats.map((question) => <QuestionCard question={question} stats={question.stats} resolution={resolution} key={question.key} />)}</div>
         </section>}
       </section>
