@@ -1,7 +1,22 @@
-import { BarChart3, BriefcaseBusiness, Building2, GraduationCap, Landmark } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, Building2, ClipboardList, GraduationCap, Landmark } from 'lucide-react'
 import { lazy } from 'react'
 
 export const areas = [
+  {
+    id: 'general',
+    nombre: 'General',
+    descripcion: 'Registro, seguimiento y preparación de informes institucionales.',
+    icono: ClipboardList,
+    herramientas: [
+      {
+        id: 'informe-actividades',
+        nombre: 'Bitácora e informe mensual de actividades',
+        descripcion: 'Registra actividades semanales, importa Trello y genera informes consolidados en Word.',
+        icono: ClipboardList,
+        componente: lazy(() => import('../tools/general/informe-actividades/InformeActividades.jsx')),
+      },
+    ],
+  },
   {
     id: 'usegbe',
     nombre: 'USEGBE',

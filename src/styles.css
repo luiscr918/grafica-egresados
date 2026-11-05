@@ -219,3 +219,54 @@ footer { border-top: 1px solid #dce6ed; color: #8b99a5; font-size: 11px; letter-
 .marketing-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
 @media (max-width: 850px) { .area-grid, .marketing-grid { grid-template-columns: 1fr; } .preview-panel { position: static; } .marketing-title { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 560px) { .portal-header { padding: 15px 18px; } .portal-header-actions span { display: none; } .portal-header-inner { align-items: center; } .area-grid { gap: 12px; } .tool-card { align-items: flex-start; flex-wrap: wrap; } .tool-card .button { margin-left: 66px; } .tool-route-bar { padding-left: 14px; padding-right: 14px; } .marketing-panel, .preview-panel { padding: 16px 13px; } .form-fields { grid-template-columns: 1fr; } .marketing-field.full { grid-column: auto; } .word-preview { padding: 25px 18px; } .marketing-actions .button { width: 100%; } }
+
+.activity-workspace { padding-top: 42px; }
+.activity-title { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 24px; }
+.activity-title h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 46px); }
+.activity-title p:not(.eyebrow) { color: #718194; margin: 0; }
+.activity-user { display: flex; align-items: center; gap: 10px; color: #718194; font-size: 12px; white-space: nowrap; }
+.activity-toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 16px; }
+.activity-toolbar label { cursor: pointer; }
+.activity-layout { display: grid; grid-template-columns: 235px minmax(0, 1fr); gap: 18px; align-items: start; }
+.activity-sidebar, .activity-panel, .login-card { border: 1px solid #dce6ed; border-radius: 11px; background: #fff; box-shadow: 0 7px 23px rgba(30,63,90,.035); }
+.activity-sidebar { padding: 16px 12px; position: sticky; top: 18px; }
+.activity-sidebar .panel-title { padding: 4px 7px 14px; }
+.activity-sidebar .panel-title p { font-size: 11px; }
+.new-report { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 9px; border: 1px dashed #9bcaf0; border-radius: 6px; color: #118dff; background: #f4faff; font-size: 12px; font-weight: 800; }
+.report-item { display: grid; gap: 3px; width: 100%; margin-top: 7px; padding: 10px; border: 1px solid transparent; border-radius: 7px; color: #53677b; background: transparent; text-align: left; }
+.report-item:hover, .report-item.active { border-color: #b9dafa; background: #f4faff; }
+.report-item strong { overflow: hidden; color: #23394c; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.report-item span, .report-item small { color: #8492a0; font-size: 10px; }
+.activity-main { display: grid; gap: 16px; min-width: 0; }
+.activity-panel { padding: 20px; }
+.panel-title { display: flex; gap: 10px; align-items: flex-start; }
+.panel-title > svg { flex-shrink: 0; margin-top: 2px; color: #118dff; }
+.panel-title h2 { margin: 0 0 4px; color: #23394c; font-size: 17px; }
+.panel-title p { margin: 0; color: #8593a0; font-size: 12px; line-height: 1.45; }
+.activity-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.report-settings .activity-fields { margin-top: 18px; }
+.activity-fields label, .login-card label { display: grid; gap: 6px; color: #627588; font-size: 11px; font-weight: 800; }
+.activity-fields label.full { grid-column: 1 / -1; }
+.activity-fields input, .activity-fields select, .activity-fields textarea, .login-card input { width: 100%; border: 1px solid #ccd9e3; border-radius: 6px; color: #23394c; background: #fff; outline-color: #118dff; font-size: 13px; }
+.activity-fields input, .activity-fields select, .login-card input { padding: 10px; }
+.activity-fields textarea { min-height: 66px; padding: 10px; resize: vertical; line-height: 1.45; }
+.activities-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
+.activity-list { display: grid; gap: 12px; }
+.activity-empty { padding: 42px 20px; border: 1px dashed #aac3d5; border-radius: 8px; color: #8492a0; text-align: center; font-size: 13px; }
+.activity-row { padding: 15px; border: 1px solid #dce6ed; border-radius: 8px; background: #fbfcfd; }
+.activity-row.excluded { opacity: .6; }
+.activity-row-top { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+.include-check { display: inline-flex; align-items: center; gap: 6px; color: #53677b; font-size: 11px; font-weight: 800; }
+.activity-source { margin-right: auto; color: #218452; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.icon-button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 5px; color: #8b99a5; background: #eef2f5; }
+.icon-button:hover { color: #bb4b4b; background: #ffe9e9; }
+.refined-field textarea { border-color: #a9d5b9; background: #f7fcf8; }
+.activity-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.login-workspace { display: grid; min-height: 70vh; place-items: center; }
+.login-card { width: min(440px, 100%); padding: 30px; }
+.login-card h1 { margin: 0 0 8px; font-size: 32px; }
+.login-card > p:not(.eyebrow) { color: #718194; font-size: 13px; line-height: 1.5; }
+.login-card form { display: grid; gap: 14px; margin-top: 22px; }
+.login-switch { display: block; margin: 17px auto 0; border: 0; color: #118dff; background: transparent; font-size: 12px; font-weight: 700; }
+@media (max-width: 850px) { .activity-layout { grid-template-columns: 1fr; } .activity-sidebar { position: static; } .report-item { display: inline-grid; width: calc(50% - 6px); margin-right: 7px; vertical-align: top; } }
+@media (max-width: 560px) { .activity-title, .activities-heading { align-items: flex-start; flex-direction: column; } .activity-user { width: 100%; justify-content: space-between; } .activity-panel { padding: 16px 13px; } .activity-fields { grid-template-columns: 1fr; } .activity-fields label.full { grid-column: auto; } .activity-actions .button, .activity-toolbar .button { width: 100%; } .report-item { width: 100%; margin-right: 0; } }

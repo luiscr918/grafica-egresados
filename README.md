@@ -4,6 +4,7 @@ Portal único para las herramientas internas de USEGBE, URI y UFC. Todo el proce
 
 ## Herramientas
 
+- **General:** bitácora semanal e informe mensual consolidado de actividades.
 - **USEGBE:** gráficos de seguimiento a egresados y solicitud de marketing para la bolsa de empleo.
 - **URI:** área preparada para futuras herramientas.
 - **UFC:** área preparada para futuras herramientas.
@@ -12,9 +13,13 @@ El generador de gráficos conserva la carga de Excel ancho y largo, incluyendo u
 
 La herramienta **Solicitud de marketing – Bolsa de empleo** analiza el correo de ITSQMET, propone los datos del requerimiento, permite editarlos, genera una vista previa y descarga un `.docx` con hipervínculos e imágenes opcionales.
 
+La herramienta **Bitácora e informe mensual de actividades** requiere iniciar sesión con Firebase Authentication. Permite importar una exportación JSON de Trello, corregir fechas de referencia, clasificar actividades de URI/UFC/USEGBE, refinar localmente la redacción, guardar informes en Firestore y descargar el informe personal o una base para revisión de jefatura en `.docx`.
+
 ## Instalación y comandos
 
 Requiere Node.js 18 o superior y npm 9 o superior.
+
+Configura las variables de Firebase de `.env.example` en `.env` antes de ejecutar la herramienta de informes. `.env` está excluido del repositorio.
 
 ```bash
 npm install
