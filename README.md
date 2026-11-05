@@ -5,7 +5,7 @@ Portal único para las herramientas internas de USEGBE, URI y UFC. Todo el proce
 ## Herramientas
 
 - **General:** bitácora semanal e informe mensual consolidado de actividades.
-- **USEGBE:** gráficos de seguimiento a egresados y solicitud de marketing para la bolsa de empleo.
+- **USEGBE:** gráficos de seguimiento a egresados, matriz comparativa de períodos y solicitud de marketing para la bolsa de empleo.
 - **URI:** área preparada para futuras herramientas.
 - **UFC:** área preparada para futuras herramientas.
 
@@ -14,6 +14,8 @@ El generador de gráficos conserva la carga de Excel ancho y largo, incluyendo u
 La herramienta **Solicitud de marketing – Bolsa de empleo** analiza el correo de ITSQMET, propone los datos del requerimiento, permite editarlos, genera una vista previa y descarga un `.docx` con hipervínculos e imágenes opcionales.
 
 La herramienta **Bitácora e informe mensual de actividades** requiere iniciar sesión con Firebase Authentication. Permite importar una exportación JSON de Trello, corregir fechas de referencia, clasificar actividades de URI/UFC/USEGBE, refinar localmente la redacción, guardar informes en Firestore y descargar el informe personal o una base para revisión de jefatura en `.docx`.
+
+La herramienta **Matriz comparativa de períodos** carga un Excel anterior y uno actual, calcula el top 3 de respuestas por pregunta, aplica el catálogo de indicadores institucionales, expresa las variaciones en puntos porcentuales y descarga una matriz consolidada junto con hojas separadas por carrera y modalidad.
 
 ## Instalación y comandos
 

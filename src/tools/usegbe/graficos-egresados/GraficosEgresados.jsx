@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Archive, BookOpen, CheckCircle2, CircleHelp, CopyX, Download, FileSpreadsheet, FileStack, FileText, Layers3, ShieldCheck, SlidersHorizontal, Trash2, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, Archive, BookOpen, CheckCircle2, CircleHelp, CopyX, Download, FileSpreadsheet, FileStack, FileText, Layers3, ShieldCheck, SlidersHorizontal, Table2, Trash2, Upload, UsersRound, X } from 'lucide-react'
 import UploadZone from './components/UploadZone'
 import QuestionCard from './components/QuestionCard'
+import ComparativaPeriodos from './ComparativaPeriodos'
 import { careerOptions, questions } from './lib/questions'
 import { parseExcelFile } from './lib/parseExcel'
 import { getStats } from './lib/stats'
@@ -33,6 +34,8 @@ export default function GraficosEgresados() {
   const [globalMessage, setGlobalMessage] = useState('')
   const [showGuide, setShowGuide] = useState(false)
   const [analysisOverrides, setAnalysisOverrides] = useState({})
+  const [screen, setScreen] = useState('graficos')
+
 
   async function handleFiles(incomingFiles) {
     const excelFiles = incomingFiles.filter((file) => file.name.toLowerCase().endsWith('.xlsx'))
@@ -172,6 +175,8 @@ export default function GraficosEgresados() {
     }
   }
 
+  if (screen === 'comparativa') return <ComparativaPeriodos onBack={() => setScreen('graficos')} />
+
   return (
     <main className="app-shell">
       <header className="hero">
@@ -181,7 +186,7 @@ export default function GraficosEgresados() {
            <h1>Análisis Gráfico de Resultados</h1>
           <p className="hero-copy">Carga las respuestas de la encuesta y genera los gráficos listos para tu informe institucional.</p>
         </div>
-         <div className="hero-tools"><div className="privacy-note"><ShieldCheck size={16} /> Los archivos se procesan solo en tu navegador</div><button className="guide-button" type="button" onClick={() => setShowGuide(true)}><BookOpen size={16} strokeWidth={2.2} /> Guía de uso</button></div>
+          <div className="hero-tools"><div className="privacy-note"><ShieldCheck size={16} /> Los archivos se procesan solo en tu navegador</div><button className="guide-button" type="button" onClick={() => setShowGuide(true)}><BookOpen size={16} strokeWidth={2.2} /> Guía de uso</button><button className="guide-button" type="button" onClick={() => setScreen('comparativa')}><Table2 size={16} strokeWidth={2.2} /> Comparar períodos</button></div>
       </header>
 
       <section className="workspace">
