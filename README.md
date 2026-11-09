@@ -6,6 +6,7 @@ Portal único para las herramientas internas de USEGBE, URI y UFC. Todo el proce
 
 - **General:** bitácora semanal e informe mensual consolidado de actividades.
 - **USEGBE:** gráficos de seguimiento a egresados, matriz comparativa de períodos y solicitud de marketing para la bolsa de empleo.
+- **Encuestas a graduados:** consolida archivos XLSX de las carreras, ignora datos personales, genera gráficos y análisis de 19 preguntas, y permite descargar un Excel consolidado, ZIP de imágenes o PDF.
 - **URI:** área preparada para futuras herramientas.
 - **UFC:** área preparada para futuras herramientas.
 

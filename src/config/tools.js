@@ -31,6 +31,13 @@ export const areas = [
         componente: lazy(() => import('../tools/usegbe/graficos-egresados/GraficosEgresados.jsx')),
       },
       {
+        id: 'graficos-graduados',
+        nombre: 'Gráficos de encuestas a graduados',
+        descripcion: 'Consolida las respuestas de todas las carreras y genera gráficos y análisis para el informe de graduados.',
+        icono: BarChart3,
+        componente: lazy(() => import('../tools/usegbe/graficos-graduados/GraficosGraduados.jsx')),
+      },
+      {
         id: 'solicitud-marketing-bolsa-empleo',
         nombre: 'Solicitud de marketing – Bolsa de empleo',
         descripcion: 'Convierte el correo de una vacante en un requerimiento editable y un documento Word.',
