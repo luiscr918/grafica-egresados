@@ -63,6 +63,24 @@ git commit -m "feat: convertir USEGBE en portal de herramientas"
 git push
 ```
 
-## Tecnologías
+## Contexto persistente en OpenCode (Windows)
+
+El MCP Codebase Memory está configurado en `opencode.json`, solo para este proyecto. Para instalar el binario local en una nueva copia del repositorio:
+
+```powershell
+pwsh -NoProfile -File .opencode/setup-codebase-memory.ps1
+```
+
+Cierra y vuelve a abrir OpenCode desde este proyecto para cargar el MCP. El binario se guarda en `.opencode/bin/` y el índice en `.codebase-memory/cache/`, excluidos de Git. El lanzador limita la indexación a este repositorio. No modifica la configuración global.
+
+La bitácora compartida está en `docs/PROJECT_MEMORY.md`; `AGENTS.md` indica consultarla y actualizarla entre tareas. El índice conserva contexto del código y `manage_adr` permite guardar decisiones; no archiva automáticamente cada conversación.
+
+Para consultar la instalación por terminal:
+
+```powershell
+pwsh -NoProfile -File .opencode/codebase-memory.ps1 cli list_projects
+```
+
+## Tecnologías utilizadas
 
 React 19, Vite 6, React Router, Tailwind CSS, Lucide React, SweetAlert2, Chart.js, XLSX, JSZip, jsPDF, FileSaver y docx.

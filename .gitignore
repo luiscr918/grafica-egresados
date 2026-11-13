@@ -28,3 +28,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Project-local Codebase Memory installation and indexes
+.opencode/bin/
+.codebase-memory/
