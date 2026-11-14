@@ -274,6 +274,7 @@ footer { border-top: 1px solid #dce6ed; color: #8b99a5; font-size: 11px; letter-
 .activity-user { display: flex; align-items: center; gap: 10px; color: #718194; font-size: 12px; white-space: nowrap; }
 .activity-toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 16px; }
 .activity-toolbar label { cursor: pointer; }
+.trello-import-help { margin: 0 0 18px; color: #627588; font-size: 12px; line-height: 1.6; }
 .activity-layout { display: grid; grid-template-columns: 235px minmax(0, 1fr); gap: 18px; align-items: start; }
 .activity-sidebar, .activity-panel, .login-card { border: 1px solid #dce6ed; border-radius: 11px; background: #fff; box-shadow: 0 7px 23px rgba(30,63,90,.035); }
 .activity-sidebar { padding: 16px 12px; position: sticky; top: 18px; }
@@ -309,6 +310,17 @@ footer { border-top: 1px solid #dce6ed; color: #8b99a5; font-size: 11px; letter-
 .icon-button:hover { color: #bb4b4b; background: #ffe9e9; }
 .refined-field textarea { border-color: #a9d5b9; background: #f7fcf8; }
 .activity-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.report-preview { margin-top: 18px; }
+.report-preview-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 18px; }
+.report-preview-controls label { display: grid; gap: 6px; color: #627588; font-size: 12px; font-weight: 800; }
+.report-preview-controls select { max-width: 100%; padding: 10px; border: 1px solid #ccd9e3; border-radius: 6px; color: #23394c; background: #fff; font-size: 13px; }
+.report-preview-controls p, .report-preview-empty { color: #627588; font-size: 13px; line-height: 1.5; }
+.report-preview-paper { max-width: 800px; margin: 0 auto; padding: clamp(20px, 5vw, 64px); border: 1px solid #dce6ed; background: #fff; box-shadow: 0 4px 18px rgba(30,63,90,.07); color: #222; font-family: Arial, sans-serif; font-size: 14.67px; line-height: 1.5; overflow-wrap: anywhere; }
+.report-preview-paper .report-preview-title { margin: 0 0 24px; text-align: center; font-size: 16px; font-weight: 400; }
+.report-preview-paper h4 { margin: 20px 0 8px; font-size: 15px; }
+.report-preview-paper h5 { margin: 16px 0 8px; font-size: 14.67px; }
+.report-preview-paper p { margin: 0 0 10px; white-space: pre-wrap; }
+.report-preview-note { font-weight: 700; font-style: italic; }
 .login-workspace { display: grid; min-height: 70vh; place-items: center; }
 .login-card { width: min(440px, 100%); padding: 30px; }
 .login-card h1 { margin: 0 0 8px; font-size: 32px; }

@@ -16,6 +16,14 @@ La herramienta **Solicitud de marketing – Bolsa de empleo** analiza el correo 
 
 La herramienta **Bitácora e informe mensual de actividades** requiere iniciar sesión con Firebase Authentication. Permite importar una exportación JSON de Trello, corregir fechas de referencia, clasificar actividades de URI/UFC/USEGBE, refinar localmente la redacción, guardar informes en Firestore y descargar el informe personal o una base para revisión de jefatura en `.docx`.
 
+Antes de importar Trello, completar **Fecha inicial** y **Fecha final**. La importación toma únicamente tarjetas cuya fecha de referencia esté dentro del rango (ambos extremos incluidos): vencimiento de la tarjeta o, si no tiene una fecha válida de vencimiento, última actividad. Las tarjetas sin fecha válida se omiten y se contabilizan en el resumen.
+
+Para completar el mismo informe cada semana, abrir su borrador guardado e importar la nueva exportación del tablero. Las tarjetas se identifican por su ID de Trello: se agregan las nuevas y se actualizan los campos importados que no hayas corregido, sin duplicar las ya registradas. Se conservan las evidencias y la selección «Incluir». Los registros antiguos sin historial de importación conservan sus campos editables. Las actividades existentes no se eliminan por faltar en una exportación posterior o quedar fuera del rango de la nueva importación. Guardar en Firebase después de revisar los cambios.
+
+El botón **Vista previa** muestra el contenido consolidado de la versión personal o de jefatura antes de descargarlo. Las actividades se agrupan por unidad y categoría, sin fechas individuales.
+
+Comprobaciones de importación: `node --test src/tools/general/informe-actividades/lib/trello.test.js`.
+
 La herramienta **Matriz comparativa de períodos** carga un Excel anterior y uno actual, calcula el top 3 de respuestas por pregunta, aplica el catálogo de indicadores institucionales, expresa las variaciones en puntos porcentuales y descarga una matriz consolidada junto con hojas separadas por carrera y modalidad.
 
 ## Instalación y comandos

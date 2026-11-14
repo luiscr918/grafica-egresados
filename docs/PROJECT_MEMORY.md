@@ -21,6 +21,27 @@ Portal de herramientas internas ITSQMET para General, USEGBE, URI y UFC. Aplicac
 - Verificación ejecutada: `npm run build` correcto. No se realizó prueba interactiva en navegador.
 - El usuario confirmó «perfecto» antes de solicitar la instalación de memoria.
 
+### 2026-11-13 — Vista previa del informe de actividades
+
+- Agregado botón «Vista previa» junto a guardar y descargar. Muestra el documento consolidado y se actualiza al editar el borrador, sin tener que guardarlo o descargarlo primero.
+- Permite seleccionar «Mi informe» o «Base para jefatura» y descargar la versión mostrada. Incluye contador de actividades y ayuda cuando no hay actividades exportables.
+- Se mantiene el contenido agrupado por unidad y categoría, sin fechas individuales. Las fechas inicial/final siguen siendo editables y describen el período; esta tarea no incorpora filtrado automático por fecha.
+- Decisión: compartir `getReportContent` entre vista previa y exportación Word para conservar los mismos textos, agrupación, orden y selección de actividades. La vista HTML aproxima la presentación; la paginación puede variar en Word.
+- Archivos: `src/tools/general/informe-actividades/InformeActividades.jsx`, `ReportPreview.jsx`, `lib/reportContent.js`, `lib/generateReportDocx.js` y `src/styles.css`.
+- Verificaciones ejecutadas: `npm run build` correcto (aviso de chunks grandes); `git diff --check` sin errores de whitespace; comprobación con Node/assert de período editable, agrupación, exclusión de actividades desmarcadas/sin texto/sin unidad, ausencia de fechas individuales, variantes, borrador vacío y actualización del contenido.
+- Pendiente: comprobación interactiva en navegador con sesión autorizada y revisión visual del Word descargado; no realizadas en esta sesión.
+
+### 2026-11-13 — Importación Trello por período y sin duplicados
+
+- Nueva necesidad confirmada: importar solo tarjetas dentro del rango editable inicial/final y poder reimportar exportaciones semanales sin redundancia.
+- `lib/trello.js`: valida rango completo/ordenado, JSON de tablero e IDs estables; filtra por fecha de referencia inclusiva (vencimiento válido y, en su defecto, última actividad). Omite tarjetas sin fecha válida y conserva la exclusión de plantillas.
+- Fusiona por `sourceId`/ID estable de Trello. Agrega únicamente tarjetas nuevas y colapsa duplicados anteriores, conservando la primera copia. No deduplica por título ni mezcla actividades manuales.
+- Guarda `trelloSnapshot` para actualizar campos importados solo si no fueron corregidos por el usuario. Respeta evidencias e inclusión; registros antiguos sin snapshot conservan sus campos editables. No elimina actividades existentes ausentes en la nueva exportación o fuera del nuevo rango: el filtrado se aplica a las tarjetas entrantes.
+- `InformeActividades.jsx`: resumen visible con nuevas/existentes/fuera del período/sin fecha; explicación de la fecha empleada y protección si cambia el borrador durante la lectura del archivo.
+- Archivos: `src/tools/general/informe-actividades/lib/trello.js`, `lib/trello.test.js`, `InformeActividades.jsx`, `src/styles.css`, `README.md` y esta memoria.
+- Verificación ejecutada: `node --test src/tools/general/informe-actividades/lib/trello.test.js` (10 pruebas aprobadas); `npm run build` correcto con aviso de chunks grandes; `git diff --check` sin errores de whitespace.
+- Pendiente: prueba interactiva con sesión autorizada y una exportación real del tablero del usuario; pruebas automatizadas realizadas con fixtures sintéticos.
+
 ## Memoria técnica
 
 - Configuración MCP: `opencode.json`.
