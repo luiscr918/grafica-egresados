@@ -1,13 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, PDFName, StandardFonts } from 'pdf-lib'
 import { blankEvent, civilTime, createSnapshot, evaluatePerson, formatDuration, policyKey, unionSeconds, windowOf } from './model.js'
 import { formTable, parseDelimited, parseDuration, parseForms, parseTeams, parseTeamsDate, readSheets } from './importFiles.js'
 import { buildRoster, linkRegistration, mergePeople, organizerPerson } from './roster.js'
-import { generateCertificates, loadCertificateAssets } from './certificates.js'
+import { fitText, generateCertificates, loadCertificateAssets } from './certificates.js'
 import { buildReportWorkbook } from './exportReport.js'
-import { designBoxes, constrainBox } from './design.js'
+import { alignBox, changeDesign, designBoxes, constrainBox, resizeBox } from './design.js'
+import { changeLogo, fitLogo, logoBoxes, MAX_LOGO_DATA } from './logos.js'
 
 const event = () => ({ ...blankEvent(), title: 'Inteligencia Artificial Generativa Aplicada a la Docencia de Educación Superior', institution: 'Universidad de Ejemplo', focus: 'innovación educativa y desarrollo profesional', date: '2026-11-12', startTime: '15:00:00', endTime: '16:00:00', windowConfirmed: true, signers: [...blankEvent().signers.slice(0, 2), { name: 'Dra. Ana Ejemplo', title: 'Representante institucional' }] })
 const person = (seconds = 2880) => ({ ...organizerPerson('María José Pérez Díaz'), id: 'p1', role: 'participant', registration: { id: 'f1', name: 'Pérez Díaz María José', names: ['Pérez Díaz María José'], emails: ['persona@example.org'], consentIssue: false }, sessions: [{ start: civilTime('2026-11-12', '15:00:00'), end: civilTime('2026-11-12', '15:00:00') + seconds }] })
@@ -150,6 +151,123 @@ for (const [folder, responses, unique, teamsCount, duration] of [['chaco', 21, 1
 }
 
 const assetsPath = new URL('../../../../../public/certificados/', import.meta.url)
+test('One background and transparent shared logos survive snapshots, all roles and text resets', async () => {
+  const assets = await loadCertificateAssets((file) => readFileSync(new URL(file, assetsPath)))
+  assert.equal((await PDFDocument.load(assets[0])).getPageCount(), 1)
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DQAAAEgQGALFXOsAAAAABJRU5ErkJggg=='
+  let e = { ...event(), logos: [{ id: 'shared', name: 'Prueba.png', dataUrl: png, x: 300, y: 65, width: 100, height: 50 }] }
+  e = changeLogo(e, 'logo:shared', { x: 400, y: 70, width: 120, height: 60 })
+  const rows = [organizerPerson(e.organizerName), { ...person(), id: 'speaker', role: 'speaker' }, person()]
+  const payload = createSnapshot(e, rows)
+  assert.deepEqual(payload.event.logos, e.logos)
+  e = changeDesign(payload.event, rows[0], 'model', null, null)
+  e = changeDesign(e, rows[2], 'person', null, null)
+  assert.deepEqual(e.logos, payload.event.logos, 'Text restores cannot remove shared branding')
+  const box = logoBoxes(e, 841.89, 595.28)['logo:shared']
+  assert.deepEqual(fitLogo({ width: 200, height: 100 }, box), { x: 400, y: 70, width: 120, height: 60 })
+  assert.deepEqual(fitLogo({ width: 100, height: 100 }, box), { x: 430, y: 70, width: 60, height: 60 })
+  const pdf = await PDFDocument.load(await generateCertificates(e, payload.recipients, { assets }))
+  assert.equal(pdf.getPageCount(), 3)
+  const sharedReferences = pdf.getPages().map((page) => {
+    const xobjects = page.node.Resources().lookup(PDFName.of('XObject'))
+    const logoEntry = xobjects.entries().find(([, ref]) => {
+      const object = pdf.context.lookup(ref)
+      return object.dict?.get(PDFName.of('Subtype')) === PDFName.of('Image') && object.dict.get(PDFName.of('Width'))?.asNumber() === 1
+    })
+    assert.ok(logoEntry, 'Every role includes the uploaded logo')
+    assert.ok(pdf.context.lookup(logoEntry[1]).dict.get(PDFName.of('SMask')), 'Alpha channel is preserved')
+    return logoEntry[1].toString()
+  })
+  assert.equal(new Set(sharedReferences).size, 1, 'Batch embeds the logo once for all pages')
+  const cleared = changeLogo(e, 'logo:shared', null)
+  assert.deepEqual(cleared.logos, [])
+  assert.deepEqual(logoBoxes(event(), 841.89, 595.28), {}, 'Older events without logos are supported')
+})
+
+test('Logos reject non-PNG, duplicate IDs, invalid geometry, excessive payload and damaged PNG', async () => {
+  const base = { id: 'logo', name: 'logo.png', dataUrl: 'data:image/png;base64,iVBORw0KGgo=', x: 50, y: 60, width: 100, height: 50 }
+  const check = (logos) => logoBoxes({ logos }, 841.89, 595.28)
+  assert.throws(() => check([{ ...base, dataUrl: 'data:image/jpeg;base64,abcd' }]), /PNG válida/)
+  assert.throws(() => check([base, base]), /duplicado/)
+  for (const patch of [{ x: -1 }, { x: Infinity }, { y: 590 }, { width: 0 }, { height: NaN }]) assert.throws(() => check([{ ...base, ...patch }]), /dentro de la página/)
+  assert.throws(() => check([{ ...base, dataUrl: base.dataUrl + 'A'.repeat(MAX_LOGO_DATA) }]), /demasiado espacio/)
+  const assets = await loadCertificateAssets((file) => readFileSync(new URL(file, assetsPath)))
+  await assert.rejects(generateCertificates({ ...event(), logos: [base] }, [person()], { assets }), /PNG válido/)
+})
+
+test('Manual signature line breaks survive fitting, CRLF normalization and balanced wrapping', async () => {
+  const assets = await loadCertificateAssets((file) => readFileSync(new URL(file, assetsPath)))
+  const document = await PDFDocument.create()
+  const font = await document.embedFont(StandardFonts.Helvetica)
+  const options = { width: 500, height: 80, maxSize: 12, minSize: 9.5, maxLines: 3 }
+  const title = 'Representante GAD\nEl Chaco (Alcaldía de Napo)'
+  assert.deepEqual(fitText(title, font, options).lines, title.split('\n'))
+  assert.deepEqual(fitText(title.replace('\n', '\r\n'), font, { ...options, maxLines: 2, balanced: true }).lines, title.split('\n'))
+  assert.deepEqual(fitText('Representante GAD\n\nEl Chaco', font, options).lines, ['Representante GAD', '', 'El Chaco'])
+  assert.throws(() => fitText('Uno\nDos\nTres\nCuatro', font, options), /no cabe/)
+  assert.throws(() => fitText(' \n ', font, options), /Completa el texto/)
+  assert.throws(() => fitText('Nombre 😀', font, options), /caracteres/)
+  const p = person()
+  const e = changeDesign(event(), p, 'person', 'signer0', { signerTitle: title, signerName: 'Dr. Alex León' })
+  const snapshot = createSnapshot(e, [p])
+  assert.equal(designBoxes(snapshot.event, p.role, 841.89, 595.28, p.id).signer0.signerTitle, title)
+  assert.equal((await PDFDocument.load(await generateCertificates(snapshot.event, snapshot.recipients, { assets }))).getPageCount(), 1)
+  assert.throws(() => designBoxes({ ...e, designs: { participant: { signer1: { signerTitle: 123 } } } }, p.role, 841.89, 595.28, p.id), /texto inválido/)
+})
+
+test('Individual layouts survive snapshots and PDF batches; template edits replace only the edited exceptions', async () => {
+  const assets = await loadCertificateAssets((file) => readFileSync(new URL(file, assetsPath)))
+  const p = person(), other = { ...person(), id: 'p2' }, speaker = { ...person(), id: 's1', role: 'speaker' }
+  let e = event()
+  const original = designBoxes(e, p.role, 841.89, 595.28)
+  e = changeDesign(e, p, 'person', 'signer0', { ...original.signer0, y: 450, scale: .7 })
+  e = changeDesign(e, p, 'person', 'recipient', { ...original.recipient, y: 200 })
+  e = changeDesign(e, speaker, 'person', 'signer0', { y: 460 })
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, p.id).signer0.y, 450)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, other.id).signer0.y, 485)
+  assert.equal(designBoxes(e, 'speaker', 841.89, 595.28, p.id).signer0.y, 485, 'Changing a person role must not reuse another model exception')
+  const snapshot = createSnapshot(e, [p, other, speaker])
+  assert.deepEqual(snapshot.event.certificateDesigns, e.certificateDesigns)
+  const layouts = []
+  const bytes = await generateCertificates(snapshot.event, snapshot.recipients, { assets, onLayout: (l) => layouts.push(l) })
+  assert.equal((await PDFDocument.load(bytes)).getPageCount(), 3)
+  assert.deepEqual(layouts.map((l) => l.boxes.signer0.y), [450, 485, 460])
+  e = changeDesign(e, p, 'model', 'signer0', { ...original.signer0, y: 470 })
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, p.id).signer0.y, 470)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, other.id).signer0.y, 470)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, p.id).recipient.y, 200, 'Other personal elements survive a template edit')
+  assert.equal(e.certificateDesigns.s1.boxes.signer0.y, 460)
+  e = changeDesign(e, p, 'person', null, null)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, p.id).signer0.y, 470, 'Personal reset inherits the template')
+  e = changeDesign(e, other, 'person', 'heading', { y: 130 })
+  e = changeDesign(e, p, 'model', null, null)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, other.id).heading.y, 134)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, p.id).signer0.y, 485)
+  assert.ok(e.certificateDesigns.s1, 'Reset model preserves other roles')
+})
+
+test('Side and corner resizing anchor the opposite edge and enforce page and minimum limits', () => {
+  const box = { x: 50, y: 60, width: 100, height: 80, scale: 1 }
+  assert.deepEqual(resizeBox(box, 'w', 30, 20, 500, 400), { ...box, x: 80, width: 70 })
+  assert.deepEqual(resizeBox(box, 'n', 30, 20, 500, 400), { ...box, y: 80, height: 60 })
+  assert.deepEqual(resizeBox(box, 'e', 30, 20, 500, 400), { ...box, width: 130 })
+  assert.deepEqual(resizeBox(box, 's', 30, 20, 500, 400), { ...box, height: 100 })
+  assert.deepEqual(resizeBox(box, 'nw', 500, 500, 500, 400), { ...box, x: 130, y: 128, width: 20, height: 12 })
+  assert.deepEqual(resizeBox(box, 'se', 500, 500, 500, 400), { ...box, width: 450, height: 340 })
+  assert.deepEqual(resizeBox(box, 'nw', -500, -500, 500, 400), { ...box, x: 0, y: 0, width: 150, height: 140 })
+})
+
+test('Alignment snaps near page center or other edges, but leaves distant boxes untouched', () => {
+  const box = { x: 202, y: 73, width: 100, height: 40, scale: 1 }
+  const aligned = alignBox(box, { other: { x: 20, y: 75, width: 50, height: 40, label: 'Otra firma' } }, 500, 400)
+  assert.equal(aligned.box.x, 200)
+  assert.equal(aligned.box.y, 75)
+  assert.deepEqual(aligned.guides.map((g) => g.label), ['Centro de la página', 'Otra firma'])
+  assert.deepEqual(alignBox({ ...box, x: 180, y: 60 }, {}, 500, 400).guides, [])
+  const edge = alignBox({ ...box, x: 399 }, { other: { x: 498, y: 20, width: 2, height: 20 } }, 500, 400)
+  assert.ok(edge.box.x + edge.box.width <= 500)
+})
+
 test('Editable layouts persist per role, preserve eligibility and reject out-of-page or overflowing blocks', async () => {
   const assets = await loadCertificateAssets((file) => readFileSync(new URL(file, assetsPath)))
   const e = event(), p = person()

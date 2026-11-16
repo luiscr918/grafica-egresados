@@ -2,8 +2,9 @@ import { PDFDocument, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import { clean, evaluatePerson, ROLE_LABELS, validateCertificateEvent } from './model.js'
 import { designBoxes, SIGNER_INDICES } from './design.js'
+import { fitLogo, logoBoxes } from './logos.js'
 
-const FILES = ['fondos.pdf', 'NewIconScript.otf', 'BeatrixAntiqua.otf', 'Poppins-Regular.ttf', 'Poppins-Bold.ttf']
+const FILES = ['fondo-unico.pdf', 'NewIconScript.otf', 'BeatrixAntiqua.otf', 'Poppins-Regular.ttf', 'Poppins-Bold.ttf']
 const BLUE = rgb(.075, .23, .36), GOLD = rgb(.79, .6, .2), INK = rgb(.04, .08, .11)
 let assetPromise
 const characterSets = new WeakMap()
@@ -27,22 +28,26 @@ function checkCharacters(text, font, field) {
 
 function linesFor(text, font, size, width) {
   const lines = []
-  let line = ''
-  for (const word of clean(text).split(' ')) {
-    if (font.widthOfTextAtSize(word, size) > width) return null
-    const next = line ? `${line} ${word}` : word
-    if (font.widthOfTextAtSize(next, size) <= width) line = next
-    else { lines.push(line); line = word }
+  for (const paragraph of text.split('\n')) {
+    let line = ''
+    for (const word of clean(paragraph).split(' ')) {
+      if (font.widthOfTextAtSize(word, size) > width) return null
+      const next = line ? `${line} ${word}` : word
+      if (font.widthOfTextAtSize(next, size) <= width) line = next
+      else { lines.push(line); line = word }
+    }
+    lines.push(line)
   }
-  if (line) lines.push(line)
   return lines
 }
 
 export function fitText(text, font, { width, height, maxSize, minSize, maxLines, leading = 1.3, balanced = false }) {
+  text = text.replace(/\r\n?/g, '\n').normalize('NFC').trim()
+  if (!text) throw new Error('Completa el texto de la firma antes de generar el certificado.')
   checkCharacters(text, font, 'Texto')
   for (let size = maxSize; size >= minSize; size = Math.round((size - .5) * 10) / 10) {
     let lines = linesFor(text, font, size, width)
-    if (balanced && maxLines === 2 && lines?.length > 1) {
+    if (balanced && !text.includes('\n') && maxLines === 2 && lines?.length > 1) {
       const words = clean(text).split(' '), candidates = []
       for (let i = 1; i < words.length; i++) {
         const first = words.slice(0, i).join(' '), second = words.slice(i).join(' ')
@@ -122,8 +127,15 @@ async function prepare(event, people, assets) {
   const fonts = { name, title, regular, bold }
   const backgrounds = await PDFDocument.load(backgroundBytes)
   const { width, height } = backgrounds.getPage(0).getSize()
+  const sharedBoxes = logoBoxes(event, width, height)
+  const logos = await Promise.all((event.logos || []).map(async (logo) => {
+    try {
+      const image = await document.embedPng(logo.dataUrl)
+      return { image, box: fitLogo(image, sharedBoxes[`logo:${logo.id}`]) }
+    } catch { throw new Error(`No se pudo leer el logo «${logo.name}». Vuelve a cargar un PNG válido.`) }
+  }))
   const layouts = people.map((person) => {
-    const boxes = designBoxes(event, person.role, width, height)
+    const boxes = designBoxes(event, person.role, width, height, person.id)
     const recipient = boxes.recipient
     checkCharacters(person.certificateName, name, 'Nombre')
     let nameLayout
@@ -131,11 +143,11 @@ async function prepare(event, people, assets) {
     catch { nameLayout = fitText(person.certificateName.normalize('NFC'), name, { width: recipient.width, height: recipient.height, maxSize: 30 * recipient.scale, minSize: 23 * recipient.scale, maxLines: 2, leading: 1.15, balanced: true }) }
     if (!clean(event.texts[person.role])) throw new Error(`Completa la redacción para ${ROLE_LABELS[person.role]}.`)
     const body = richLayout(richParagraphs(event.texts[person.role], event, person.role), fonts, boxes.body.width, boxes.body.height, boxes.body.scale)
-    const heading = fitText('CERTIFICADO', title, { width: boxes.heading.width, height: boxes.heading.height, maxSize: (person.role === 'organizer' ? 44 : 48) * boxes.heading.scale, minSize: 20 * boxes.heading.scale, maxLines: 1 })
+    const heading = fitText('CERTIFICADO', title, { width: boxes.heading.width, height: boxes.heading.height, maxSize: 48 * boxes.heading.scale, minSize: 20 * boxes.heading.scale, maxLines: 1 })
     const signerIndices = SIGNER_INDICES[person.role]
     const signers = signerIndices.map((index) => {
       const box = boxes[`signer${index}`], scale = box.scale
-      const signer = event.signers[index]
+      const signer = { name: box.signerName ?? event.signers[index].name, title: box.signerTitle ?? event.signers[index].title }
       const signerName = fitText(signer.name, bold, { width: box.width, height: Math.min(30 * scale, box.height), maxSize: 13 * scale, minSize: 10 * scale, maxLines: 2 })
       const nameHeight = (signerName.lines.length - 1) * signerName.size * signerName.leading + bold.heightAtSize(signerName.size)
       const signerTitle = fitText(signer.title, regular, { width: box.width, height: box.height - nameHeight - 4 * scale, maxSize: 12 * scale, minSize: 9.5 * scale, maxLines: 3 })
@@ -143,18 +155,19 @@ async function prepare(event, people, assets) {
     })
     return { person, name: nameLayout, heading, body, signers, boxes }
   })
-  return { document, backgrounds, fonts, layouts }
+  return { document, backgrounds, fonts, layouts, logos }
 }
 
 export async function generateCertificates(event, people, options = {}) {
-  const { document, backgrounds, fonts, layouts } = await prepare(event, people, options.assets)
+  const { document, backgrounds, fonts, layouts, logos } = await prepare(event, people, options.assets)
   for (const [index, layout] of layouts.entries()) {
     const role = layout.person.role
-    const [page] = await document.copyPages(backgrounds, [role === 'organizer' ? 0 : role === 'speaker' ? 1 : 2])
+    const [page] = await document.copyPages(backgrounds, [0])
     document.addPage(page)
     const width = page.getWidth(), height = page.getHeight()
     const { boxes } = layout
     options.onLayout?.({ width, height, boxes, role })
+    for (const { image, box } of logos) page.drawImage(image, { x: box.x, y: height - box.y - box.height, width: box.width, height: box.height })
     drawCentered(page, layout.heading, fonts.title, boxes.heading.x + boxes.heading.width / 2, boxes.heading.y, BLUE)
     const nameHeight = (layout.name.lines.length - 1) * layout.name.size * layout.name.leading + fonts.name.heightAtSize(layout.name.size)
     drawCentered(page, layout.name, fonts.name, boxes.recipient.x + boxes.recipient.width / 2, boxes.recipient.y + Math.max(0, (boxes.recipient.height - nameHeight) / 2), GOLD)

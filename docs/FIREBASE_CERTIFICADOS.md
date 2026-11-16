@@ -13,10 +13,12 @@ users/{uid}/certificateEvents/{eventId}
 Contiene `schemaVersion`, `event`, `recipients`, `sourceInfo` y `updatedAt`:
 
 - Datos y redacciones del evento, firmantes, horas por rol y política de asistencia.
-- Distribución editable opcional en `event.designs`, por rol y bloque: `x`, `y`, `width`, `height` en puntos PDF desde la esquina superior izquierda y `scale` para el texto. Los expedientes anteriores sin esta propiedad utilizan la distribución original. Se conserva al regenerar PDF/ZIP sin afectar la evaluación de asistencia.
+- Distribución editable opcional en `event.designs`, por rol y bloque: `x`, `y`, `width`, `height` en puntos PDF desde la esquina superior izquierda y `scale` para el texto. Excepciones individuales en `event.certificateDesigns[idPersona] = { role, boxes }`, superpuestas a la plantilla solo si coincide el rol. Editar un elemento con alcance de modelo reemplaza sus excepciones individuales; el resto se conserva. Los expedientes anteriores sin estas propiedades utilizan la distribución original. Se conserva al regenerar PDF/ZIP sin afectar la evaluación de asistencia.
+- Los bloques `signerN` admiten además `signerName` y `signerTitle` opcionales para editar el texto desde el lienzo, con el mismo alcance de plantilla/individual. Los saltos de línea se guardan como parte de la cadena y se respetan al regenerar. Sin esos campos, se heredan nombre/cargo de `event.signers[N]`. Restaurar el bloque elimina también sus textos personalizados.
+- Logos compartidos opcionales en `event.logos`: lista de `{ id, name, dataUrl, x, y, width, height }`. PNG optimizado base64 con transparencia, una sola copia por evento para todos los roles/personas. No dependen de `designs` ni `certificateDesigns`. Sin la propiedad se genera sin logos sobre el nuevo fondo único. Las coordenadas son puntos PDF desde arriba/izquierda; se conserva la proporción dentro del bloque. Límite conjunto de 550 000 caracteres de imágenes; cada PNG importado se optimiza a 180 000 caracteres como máximo para reservar espacio a acreedores y textos.
 - Solamente acreedores listos: nombre aprobado, rol, correo de inscripción si corresponde, criterio y tiempos calculados, nombres de referencia y observaciones.
 - Conteos y nombres de los archivos de origen, sin su contenido.
-- No contiene PDF, ZIP, imágenes, archivos originales, intervalos crudos ni registros no aptos/pendientes.
+- No contiene PDF, ZIP, archivos originales de Forms/Teams, intervalos crudos ni registros no aptos/pendientes. Las únicas imágenes guardadas son los logos PNG optimizados del diseño; no se guardan los archivos PNG originales completos si fueron reducidos.
 
 Guardar nuevamente reemplaza el expediente completo: evita conservar acreedores retirados de la selección. Borrarlo elimina ese documento, sin afectar archivos descargados en la computadora.
 

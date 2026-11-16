@@ -107,7 +107,16 @@
 .cert-pdf-preview > div { display: flex; justify-content: space-between; margin-bottom: 14px; font-size: 13px; }
 .cert-pdf-preview iframe { width: 100%; height: 680px; border: 1px solid #cedae4; border-radius: 7px; background: #f0f3f6; }
 .cert-designer { margin-top: 25px; border-top: 1px solid #dce6ed; padding-top: 15px; }
-.cert-designer-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 10px; margin: 15px 0; }
+.cert-designer-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 10px; margin: 15px 0; border: 0; padding: 0; min-width: 0; }
+.cert-logo-panel { margin: 18px 0; padding: 16px; border: 1px solid #b5c7d6; border-radius: 8px; background: #f3f8fc; min-width: 0; }
+.cert-logo-panel h4 { margin: 0 0 10px; color: #193c5e; }
+.cert-logo-panel input[type=file] { max-width: 100%; }
+.cert-logo-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.cert-logo-item { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid #cedae4; border-radius: 6px; background: white; max-width: 100%; min-width: 0; }
+.cert-logo-select { display: flex; align-items: center; gap: 8px; min-width: 0; border: 0; border-radius: 4px; background: transparent; padding: 5px; cursor: pointer; }
+.cert-logo-select[aria-pressed=true] { outline: 2px solid #177dd4; }
+.cert-logo-select img { width: 55px; height: 38px; object-fit: contain; flex-shrink: 0; background: #edf2f6; }
+.cert-logo-select span { font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
 .cert-designer-stage { position: relative; width: 100%; background: #edf2f6; border: 1px solid #b5c7d6; margin: 18px 0; box-shadow: 0 3px 15px #193c5e18; }
 .cert-designer-stage.has-error { border-color: #c34b4b; }
 .cert-designer-stage canvas { display: block; width: 100%; height: 100%; }
@@ -116,7 +125,31 @@
 .cert-design-box:active { cursor: grabbing; }
 .cert-design-box-label { display: none; position: absolute; left: -2px; bottom: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 3px 6px; border-radius: 4px 4px 0 0; font-size: 10px; background: #177dd4; color: white; white-space: nowrap; pointer-events: none; }
 .cert-design-box.selected .cert-design-box-label { display: block; }
-.cert-design-handle { position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; background: #fff; border: 2px solid #177dd4; cursor: nwse-resize; touch-action: none; }
+.cert-design-handle { display: none; position: absolute; width: 12px; height: 12px; background: #fff; border: 2px solid #177dd4; touch-action: none; z-index: 3; }
+.cert-design-box.selected .cert-design-handle { display: block; }
+.handle-nw { left: -7px; top: -7px; cursor: nwse-resize; }
+.handle-n { left: calc(50% - 6px); top: -7px; cursor: ns-resize; }
+.handle-ne { right: -7px; top: -7px; cursor: nesw-resize; }
+.handle-e { right: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+.handle-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.handle-s { left: calc(50% - 6px); bottom: -7px; cursor: ns-resize; }
+.handle-sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.handle-w { left: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+.cert-design-box:focus-visible { outline: 2px solid #193c5e; outline-offset: 3px; }
+.cert-design-scope { border: 1px solid #b5c7d6; border-radius: 7px; padding: 12px 16px; margin: 16px 0; min-width: 0; background: #f3f8fc; }
+.cert-design-scope legend { font-weight: 700; color: #193c5e; font-size: 14px; }
+.cert-workspace .cert-design-scope > label { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; margin: 5px 22px 5px 0; cursor: pointer; }
+.cert-workspace .cert-design-scope input[type=radio] { width: auto; margin: 0; padding: 0; accent-color: #177dd4; }
+.cert-design-scope .cert-help { margin-bottom: 0; }
+.cert-alignment-guide { position: absolute; z-index: 5; pointer-events: none; background: #c026d3; }
+.guide-x { top: 0; bottom: 0; width: 1px; }
+.guide-y { left: 0; right: 0; height: 1px; }
+.cert-alignment-guide span { position: absolute; padding: 2px 5px; background: #a21caf; color: white; font-size: 10px; white-space: nowrap; border-radius: 3px; }
+.guide-x span { top: 2px; right: 3px; }
+.guide-y span { left: 2px; bottom: 3px; }
+.cert-signature-editor { position: absolute; z-index: 6; top: 12px; right: 12px; width: min(350px, calc(100% - 24px)); padding: 14px; border: 1px solid #177dd4; border-radius: 8px; background: white; box-shadow: 0 5px 25px #193c5e40; }
+.cert-signature-editor > strong { color: #193c5e; font-size: 14px; }
+.cert-signature-editor label { margin-bottom: 10px; }
 .cert-bottom-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-top: 20px; padding: 18px 20px; border: 1px solid #dce6ed; border-radius: 9px; background: #fff; }
 .cert-bottom-actions > div:first-child { flex: 1; min-width: 200px; }
 .cert-bottom-actions p { font-size: 10px; line-height: 1.65; color: #7b8d9b; margin: 6px 0 0; }

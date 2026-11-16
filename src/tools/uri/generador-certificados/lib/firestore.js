@@ -13,8 +13,8 @@ export async function listCertificateEvents(uid) {
 
 export async function saveCertificateEvent(uid, id, payload) {
   const reference = id ? doc(eventCollection(uid), id) : doc(eventCollection(uid))
-  // One atomic document: event + final recipients, no PDFs or original uploads.
-  if (new TextEncoder().encode(JSON.stringify(payload)).length > 850000) throw new Error('El expediente supera el tamaño permitido. Reduce la redacción o divide el evento en grupos antes de guardarlo.')
+  // One atomic document: event (including optimized shared PNG logos) + recipients.
+  if (new TextEncoder().encode(JSON.stringify(payload)).length > 850000) throw new Error('El expediente supera el tamaño permitido. Reduce los logos o la redacción, o divide el evento en grupos antes de guardarlo.')
   await setDoc(reference, { ...payload, updatedAt: serverTimestamp() })
   return reference.id
 }
