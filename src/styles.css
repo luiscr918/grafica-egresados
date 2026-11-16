@@ -285,6 +285,10 @@ footer { border-top: 1px solid #dce6ed; color: #8b99a5; font-size: 11px; letter-
 .report-item:hover, .report-item.active { border-color: #b9dafa; background: #f4faff; }
 .report-item strong { overflow: hidden; color: #23394c; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .report-item span, .report-item small { color: #8492a0; font-size: 10px; }
+.report-open { display: grid; gap: 3px; min-width: 0; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; }
+.report-delete { display: inline-flex; align-items: center; justify-self: start; gap: 5px; margin-top: 5px; padding: 4px 6px; border: 0; border-radius: 5px; color: #a53e3e; background: #fff1f1; font-size: 11px; }
+.report-delete:hover:not(:disabled) { background: #ffe0e0; }
+.report-delete:disabled { opacity: .55; cursor: wait; }
 .activity-main { display: grid; gap: 16px; min-width: 0; }
 .activity-panel { padding: 20px; }
 .panel-title { display: flex; gap: 10px; align-items: flex-start; }

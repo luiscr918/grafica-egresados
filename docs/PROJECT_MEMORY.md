@@ -42,6 +42,67 @@ Portal de herramientas internas ITSQMET para General, USEGBE, URI y UFC. Aplicac
 - Verificación ejecutada: `node --test src/tools/general/informe-actividades/lib/trello.test.js` (10 pruebas aprobadas); `npm run build` correcto con aviso de chunks grandes; `git diff --check` sin errores de whitespace.
 - Pendiente: prueba interactiva con sesión autorizada y una exportación real del tablero del usuario; pruebas automatizadas realizadas con fixtures sintéticos.
 
+### 2026-11-15 — Eliminación visible de informes guardados en Firebase
+
+- Agregado botón «Eliminar» con papelera en cada entrada de «Mis informes», reutilizando `removeReport` y el mismo flujo que el botón inferior del editor.
+- Confirmación con título/período y advertencia de eliminación permanente. Estado «Eliminando...», bloqueo de guardado/borrados simultáneos y manejo de errores, incluido permiso denegado.
+- La lista y su contador se actualizan únicamente tras completarse `deleteDoc`; se limpia el editor solo si corresponde al informe eliminado, conservando otro borrador abierto. Cancelar o fallar mantiene los informes.
+- Corregida pérdida del ID local al actualizar un informe existente, que podía ocultar la opción de eliminarlo y provocar duplicados al guardar nuevamente.
+- Archivos: `src/tools/general/informe-actividades/InformeActividades.jsx`, `src/styles.css` y esta memoria.
+- Verificación ejecutada: `npm run build` correcto (aviso de chunks grandes); `git diff --check` sin errores de whitespace. Consultados índice/ADR/cobertura de Codebase Memory, contrastados con código actual, y documentación oficial de Firebase mediante Context7.
+- Pendiente: comprobación interactiva autenticada de confirmación, cancelación, eliminación real y permisos en Firebase; no realizada en esta sesión. No hay reglas de Firestore versionadas en el repositorio para verificar los permisos desplegados.
+
+### 2026-11-15 — Generador de certificados URI
+
+- Requisitos confirmados: organizadora Magali Yesenia Ortega Flores, ponentes y participantes; horas por defecto 40/3/3 editables; participantes requieren Forms y 80 % de asistencia con tolerancia inicial de 1 minuto y límite de 2. Organizadora/ponentes confirmados exentos. Guardar solo evento y acreedores, no certificados ni archivos originales.
+- Analizados los tres juegos Forms/Teams y los Excel de referencia en `material_para_certificados/`, el PDF de 11 páginas, PowerPoint y cuatro capturas. El enlace Canva devolvió «Unsupported client». PowerPoint contiene las cuatro fuentes: New Icon Script, Beatrix Antiqua, Poppins regular/bold; recuperadas de contenedores EOT con cobertura de letras/tildes/ñ/números españoles. Se prepararon tres fondos sin texto variable, conservando adornos e imágenes.
+- Herramienta en `/uri/generador-certificados`, registrada en `src/config/tools.js`. Interfaz por etapas Evento/Archivos/Revisión/Certificados, modelos de datos El Chaco/KFC/UISRAEL, autenticación con la misma cuenta autorizada de informes, listado/actualización/eliminación de expedientes.
+- Importación XLSX y CSV UTF-16/tabulado; selector de hoja, mapeo Forms y orden de fechas Teams. Consolida Forms por cédula/correo y vincula solo correos exactos únicos; nombres similares requieren vínculo manual. Nombres propuestos editables/revisables, fusión de conexiones y alta de ponentes. Moderadores no se convierten automáticamente en ponentes. Autorizaciones negativas/contradictorias visibles para resolución.
+- Asistencia en segundos civiles sin depender de zona horaria del navegador, unión de intervalos recortados al tramo confirmado, sin sumar solapamientos. Conserva el total reportado por Teams aparte. Un resumen que incluye desconexiones no se trata como conexión continua si falta detalle.
+- PDF con fuentes y fondos originales, ajuste de nombres a una/dos líneas balanceadas, párrafos con campos y negritas, firmantes por rol y detección de contenido que no cabe/caracteres no soportados. Vista previa del PDF real, PDF por lote y ZIP de PDF individuales. Excel con Resumen/Para certificados/Detalle de evaluación/Pendientes. Motores PDF/Excel cargados bajo demanda.
+- Firebase: un documento atómico en `users/{uid}/certificateEvents/{eventId}` con evento, acreedores finales, evidencia agregada y metadatos de origen. Sin PDF, cargas originales ni registros no aptos/pendientes. Cambiar política temporal de un expediente recuperado exige recargar originales para reevaluar participantes. Reglas y comprobación de despliegue documentadas en `docs/FIREBASE_CERTIFICADOS.md`; no se desplegaron reglas ni se escribieron/borraron datos reales.
+- Archivos: `src/tools/uri/generador-certificados/` (interfaz y librerías), `public/certificados/` (fondos y fuentes), `scripts/prepare-certificate-assets.py`, `scripts/verify-certificate-pdf.mjs`, `scripts/verify-certificate-ui.mjs`, registro de herramientas, `package.json`/lock (pdf-lib y fontkit), `README.md`, documentación Firebase y esta memoria. Los originales del usuario permanecen en su carpeta.
+- Verificaciones ejecutadas: `npm run test:certificados` (14 aprobadas, ninguna omitida; incluye archivos reales, decisiones revisadas y fuentes/fondos), 10 pruebas Trello aprobadas, `npm run build` correcto (aviso de chunks grandes), `git diff --check` sin errores de whitespace. CLI Python preparó recursos sin modificar originales.
+- Prueba real de navegador Edge/Playwright mediante montaje local con UID sintético no autorizado: carga KFC, confirmación del tramo y ponente, vínculo manual del correo erróneo, 9 acreedores, vista previa y descarga PDF, ZIP con 9 PDF, Excel con 4 hojas, trabajo preservado ante guardado rechazado, diseño móvil sin desbordamiento horizontal y ruta pública protegida por login. Playwright instalado únicamente en directorio temporal, no como dependencia del proyecto.
+- Generados y revisados visualmente los tres roles, nombre largo a dos líneas e institución larga; PyMuPDF comprobó que los bloques de texto de las cinco páginas de verificación están dentro de la página. Se ajustó la posición de los firmantes para mantener los cargos dentro del borde. Resultados en `C:\Users\User\AppData\Local\Temp\opencode`, fuera del proyecto.
+- Pendiente: guardar/abrir/actualizar/eliminar un expediente de prueba con la cuenta autorizada y reglas reales de Firebase. También revisión final del usuario de redacciones y aspecto visual. No se comprobó un guardado exitoso remoto ni se realizaron envíos de certificados.
+
+### 2026-11-15 — Aclarar por qué solo se habilitaba el certificado de la organizadora
+
+- Reporte del usuario en El Chaco: solo aparecía Yesenia para generar aunque otras personas estaban marcadas. La asistencia sí estaba detectada; faltaba confirmar el tramo y revisar nombres. «Incluir» y «Nombre revisado» eran estados distintos poco visibles.
+- Agregado `ReviewRequirements.jsx` en Revisión: muestra fecha/tramo/mínimo con tolerancia y botón «Confirmar este tramo», estado de nombres y moderadores pendientes. Columna «Seleccionar» separada de una nueva casilla «Nombre revisado» por fila; se conserva la acción de revisión masiva de nombres visibles. En Certificados se explica por qué no aparecen seleccionados pendientes y se permite volver a Revisión.
+- Corregido `evaluatePerson`: excluir/desmarcar impide emitir, pero conserva segundos, total y porcentaje visibles y exportables. Antes devolvía cero antes de calcular la asistencia.
+- Archivos: `GeneradorCertificados.jsx`, `ReviewRequirements.jsx`, `certificates.css`, `lib/model.js`, `lib/certificates.test.js`, `scripts/verify-certificate-ui.mjs` y esta memoria.
+- Verificación ejecutada: `npm run test:certificados` (15 aprobadas, sin omitidas); `npm run build` correcto con aviso de chunks grandes. Edge/Playwright: regresión KFC completa y reproducción El Chaco con solo organizadora inicialmente; revisar nombre no omite la confirmación del tramo; exclusión conserva 0:53:00 de Lilian; confirmar tramo y nombres habilita a Lilian/Danny/Yajaira (esta última por tolerancia); confirmar a Katherine como ponente habilita quinto acreedor y descarga PDF de cinco páginas. Sin acceso a Firebase real.
+- Pendiente remoto de Firebase sin cambios respecto a la tarea anterior.
+
+### 2026-11-15 — Editor visual previo a descargar certificados URI
+
+- Agregado «Editor visual de distribución» en Certificados. Permite seleccionar una persona de muestra y mover título, nombre, redacción y cada firma (nombre/cargo juntos); redimensionar el espacio con tirador o medidas; reducir/ampliar texto 40–200 %; mover por teclado y restaurar elemento/modelo.
+- Distribución independiente por rol, común a todos los certificados de ese rol en el evento; se conserva en `event.designs` mediante el snapshot existente. Expedientes anteriores sin diseños conservan valores predeterminados. PDF único, lote y ZIP comparten estos ajustes y validaciones de límites/contenido; el fondo decorativo queda fijo.
+- Vista automática del PDF real renderizada en canvas con PDF.js 5.7.284, importación diferida y worker local Vite. Espera 450 ms al editar, cancela renders obsoletos, conserva última imagen ante errores y muestra el estado de actualización. Requisito de Node documentado: 22.13+ (24 LTS recomendado).
+- Archivos: `CertificateDesigner.jsx`, `lib/design.js`, `lib/certificates.js`, `GeneradorCertificados.jsx`, `certificates.css`, `lib/certificates.test.js`, `scripts/verify-certificate-ui.mjs`, `package.json`/lock, `README.md`, `docs/FIREBASE_CERTIFICADOS.md` y esta memoria.
+- Verificación ejecutada: `npm run test:certificados` (16 aprobadas, ninguna omitida); `npm run build` correcto (aviso de chunks grandes) y `git diff --check` sin errores de whitespace en archivos versionados. Edge/Playwright con originales KFC/El Chaco comprobó canvas real, arrastre, redimensionado, texto al 70 %, modelos independientes, restauración, móvil sin desbordamiento y métricas de posición/tamaño de firma en PDF descargado y PDF correspondiente del ZIP; también regresión KFC9, El Chaco5, Excel y login. Captura `editor-certificados.png` inspeccionada visualmente en directorio temporal. Persistencia y reapertura de diseños verificadas con snapshot local; sin acceso real a Firebase.
+- La descarga npm del paquete tuvo cortes de red; se recuperó el tarball oficial en fragmentos desde el registro y se instaló desde la caché con integridad SHA512 del lockfile. Se restauraron dependencias opcionales locales y la compilación volvió a pasar. No se añadieron scripts de descarga al repositorio.
+- Pendiente: confirmar guardado/apertura remoto del diseño con la cuenta autorizada y reglas reales; se mantiene el pendiente de Firebase anterior y revisión final del usuario.
+
+### 2026-11-15 — Certificados sin inicio de sesión (revertido posteriormente)
+
+- A petición del usuario, `/uri/generador-certificados` abre directamente el espacio de trabajo sin login, comprobación de cuenta ni botón de salir.
+- Sustituido el guardado de certificados en Firestore por `localStorage` (`uri-certificate-events-v1`): guardar, listar por actualización, abrir, reemplazar y eliminar expedientes en el mismo navegador/origen. Se conserva el snapshot de evento, diseños y acreedores finales; sin originales ni PDF ni pendientes. Si falta espacio o se bloquea el guardado, se mantiene el trabajo sin marcarlo como guardado.
+- Interfaz y README explican el alcance local: no hay sincronización entre equipos y borrar datos del navegador elimina los expedientes. No se migraron ni eliminaron documentos remotos anteriores. La documentación Firebase queda como referencia histórica. Esta decisión sustituye el requisito anterior de cuenta autorizada y persistencia remota para certificados; los informes mantienen su acceso y Firebase.
+- Archivos: `GeneradorCertificados.jsx`, `lib/storage.js` (sustituye `lib/firestore.js`), `scripts/verify-certificate-ui.mjs`, `README.md`, `docs/FIREBASE_CERTIFICADOS.md` y esta memoria.
+- Verificación ejecutada: `npm run test:certificados` (16 aprobadas, ninguna omitida); `npm run build` correcto con aviso de chunks grandes; Edge/Playwright mediante `node scripts/verify-certificate-ui.mjs C:\Users\User\AppData\Local\Temp\opencode\certificate-ui-test`: ruta pública sin login, guardar/reabrir tras recarga/actualizar sin duplicados/eliminar y confirmar ausencia tras recarga, fallo de cuota sin perder cambios, regresión KFC9/ElChaco5, editor PDF, descargas PDF/ZIP/Excel y móvil. Sin acceso a Firebase real.
+- Pendiente: revisión final del usuario de textos y presentación. Los pendientes anteriores de verificar persistencia remota de certificados ya no aplican al flujo local actual.
+
+### 2026-11-15 — Restauración del login y Firebase de certificados
+
+- El usuario decidió volver al funcionamiento previo: login con la misma cuenta autorizada de informes y expedientes en Firestore `users/{uid}/certificateEvents/{eventId}`. Queda revertida la decisión de acceso sin login y guardado local de la entrada anterior.
+- Restaurados `CertificateLogin`, comprobación de UID, cierre de sesión, consultas/guardado/eliminación en `lib/firestore.js`, textos de interfaz, README, guía Firebase y prueba de navegador anterior. Eliminado el adaptador `lib/storage.js`.
+- Archivos: `src/tools/uri/generador-certificados/GeneradorCertificados.jsx`, `lib/firestore.js`, `lib/storage.js` (retirado), `scripts/verify-certificate-ui.mjs`, `README.md`, `docs/FIREBASE_CERTIFICADOS.md` y esta memoria.
+- Verificación ejecutada: `npm run test:certificados` (16 aprobadas, ninguna omitida), `npm run build` correcto (aviso de chunks grandes), Edge/Playwright con `node scripts/verify-certificate-ui.mjs C:\Users\User\AppData\Local\Temp\opencode\certificate-ui-test`: login en ruta pública, conservación del trabajo ante guardado no autorizado, editor/PDF/ZIP/Excel/móvil y regresiones KFC9/ElChaco5.
+- Pendiente: comprobación autenticada de guardar/abrir/actualizar/eliminar con cuenta autorizada y reglas reales de Firebase. No se modificaron reglas desplegadas ni se escribieron o eliminaron datos remotos en esta reversión.
+
 ## Memoria técnica
 
 - Configuración MCP: `opencode.json`.
@@ -64,5 +125,5 @@ Portal de herramientas internas ITSQMET para General, USEGBE, URI y UFC. Aplicac
 
 ## Pendientes
 
-- Cerrar y volver a abrir OpenCode en este proyecto para que la sesión de conversación cargue las nuevas herramientas MCP.
+- Herramientas MCP directas disponibles y utilizadas en la sesión de 2026-11-15; el pendiente anterior de recargar la sesión está resuelto.
 - La instalación actual está preparada para Windows (amd64/arm64). Si se clona el repositorio, ejecutar el script de instalación local y volver a indexar; los binarios e índices no se guardan en Git.

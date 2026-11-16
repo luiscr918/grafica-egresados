@@ -1,4 +1,4 @@
-import { BarChart3, BriefcaseBusiness, Building2, ClipboardList, GraduationCap, Landmark } from 'lucide-react'
+import { Award, BarChart3, BriefcaseBusiness, Building2, ClipboardList, GraduationCap, Landmark } from 'lucide-react'
 import { lazy } from 'react'
 
 export const areas = [
@@ -51,7 +51,15 @@ export const areas = [
     nombre: 'URI',
     descripcion: 'Herramientas para relaciones institucionales y vinculación.',
     icono: Building2,
-    herramientas: [],
+    herramientas: [
+      {
+        id: 'generador-certificados',
+        nombre: 'Certificados de clases magistrales',
+        descripcion: 'Cruza Forms y Teams, revisa la asistencia y genera certificados e informes de los eventos con convenios.',
+        icono: Award,
+        componente: lazy(() => import('../tools/uri/generador-certificados/GeneradorCertificados.jsx')),
+      },
+    ],
   },
   {
     id: 'ufc',

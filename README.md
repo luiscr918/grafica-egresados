@@ -1,13 +1,13 @@
 # Portal de herramientas internas ITSQMET
 
-Portal único para las herramientas internas de USEGBE, URI y UFC. Todo el procesamiento ocurre en el navegador: no hay backend, variables de entorno ni APIs externas.
+Portal único para las herramientas internas de General, USEGBE, URI y UFC. Los archivos y documentos se procesan en el navegador. La bitácora y los certificados utilizan Firebase Authentication y Firestore para el acceso y guardado de expedientes.
 
 ## Herramientas
 
 - **General:** bitácora semanal e informe mensual consolidado de actividades.
 - **USEGBE:** gráficos de seguimiento a egresados, matriz comparativa de períodos y solicitud de marketing para la bolsa de empleo.
 - **Encuestas a graduados:** consolida archivos XLSX de las carreras, ignora datos personales, genera gráficos y análisis de 19 preguntas, y permite descargar un Excel consolidado, ZIP de imágenes o PDF.
-- **URI:** área preparada para futuras herramientas.
+- **URI:** certificados de clases magistrales con cruce de Forms y Teams, evaluación de asistencia, revisión de nombres y roles, PDF individuales o por lote e informes Excel.
 - **UFC:** área preparada para futuras herramientas.
 
 El generador de gráficos conserva la carga de Excel ancho y largo, incluyendo un solo archivo con varias carreras, normalización, detección de duplicados, gráficos por pregunta/carrera, exportación PNG, copia de imágenes y descarga de ZIP y PDF. Todo se procesa localmente en el navegador.
@@ -28,9 +28,9 @@ La herramienta **Matriz comparativa de períodos** carga un Excel anterior y uno
 
 ## Instalación y comandos
 
-Requiere Node.js 18 o superior y npm 9 o superior.
+Requiere Node.js 22.13 o superior (recomendado Node.js 24 LTS) y npm 9 o superior, por la versión de PDF.js usada en la vista previa editable.
 
-Configura las variables de Firebase de `.env.example` en `.env` antes de ejecutar la herramienta de informes. `.env` está excluido del repositorio.
+Configura las variables de Firebase de `.env.example` en `.env` antes de ejecutar informes o certificados. `.env` está excluido del repositorio. Para los permisos de certificados, consultar [docs/FIREBASE_CERTIFICADOS.md](docs/FIREBASE_CERTIFICADOS.md).
 
 ```bash
 npm install
@@ -38,6 +38,34 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Certificados de clases magistrales (URI)
+
+Ruta: `/uri/generador-certificados`. Utiliza la misma cuenta autorizada que los informes.
+
+1. **Evento:** completar tema, institución, enfoque, fecha, horas y firmantes. Los modelos El Chaco, Grupo KFC y Universidad Israel ayudan a completar textos. Horas iniciales editables: organizadora 40, ponentes 3 y participantes 3.
+2. **Archivos:** seleccionar y aplicar el Excel original de Forms y el CSV/Excel de Teams. Permite escoger hoja y columnas de Forms y el orden de fechas de Teams. Reconoce los CSV UTF-16 tabulados de Teams con sus tres secciones. Aplicar un archivo reconstruye la revisión; hacerlo antes de corregir los nombres.
+3. **Evento:** revisar y confirmar el tramo sugerido. La reunión completa puede permanecer abierta después de la clase. El cálculo usa segundos de conexión dentro del tramo, une solapamientos y descuenta desconexiones. Requisito inicial 80 %, tolerancia inicial 1 minuto, editable de 0 a 2 minutos.
+4. **Revisión:** confirmar nombres en orden nombres/apellidos, resolver vínculos de Forms y clasificar ponentes. Los correos coincidentes se vinculan automáticamente; las coincidencias por nombre son sugerencias. Moderador de Teams no equivale a ponente. Permite fusionar registros de una persona y agregar ponentes sin Forms/Teams. Participantes requieren Forms y asistencia; organizadora/ponentes confirmados están exentos.
+5. **Certificados:** editar párrafos por rol (`**negrita**` y campos `{tema}`, `{institucion}`, `{horas}`, `{enfoque}`, `{modalidad}`, `{fecha}`), revisar el PDF y descargar PDF único o ZIP de PDF individuales. Conserva fondos y fuentes del material Canva. Ajusta nombres a una/dos líneas y textos a una página; rechaza contenido que no quepa o caracteres no soportados, sin truncarlos.
+6. **Informe Excel:** hojas Resumen, Para certificados, Detalle de evaluación y Pendientes. Se puede exportar antes de completar la revisión para identificar casos pendientes.
+7. **Guardar evento y acreedores:** guarda datos y lista final en Firebase, sin PDF ni archivos originales. Al abrirlo, se regeneran los certificados. Para reevaluar otro tramo o recuperar personas no aptas, volver a importar los originales. Los registros no aptos o pendientes no se guardan.
+
+En **Certificados → Editor visual de distribución**, escoger una persona de muestra y arrastrar el título, nombre, redacción o cada bloque de firma (nombre y cargo juntos). La esquina inferior derecha cambia el espacio disponible; **Tamaño del texto (%)** reduce o amplía la letra. También se pueden introducir posiciones y medidas o usar las flechas del teclado (Mayús mueve 10 puntos). La vista se actualiza automáticamente renderizando el PDF real con PDF.js, cargado bajo demanda. Los cambios se aplican a todos los acreedores del mismo rol en el evento, tanto al PDF como al ZIP, y se guardan como `event.designs` con el expediente. Cada modelo tiene distribución independiente y acciones para restaurar un elemento o el modelo completo. El fondo decorativo es fijo. Si un bloque no cabe, se muestra el error para corregirlo antes de descargar, sin recortar contenido.
+
+Comprobación del dominio, archivos reales disponibles y generación con fuentes/fondos originales:
+
+```bash
+npm run test:certificados
+```
+
+Las pruebas de los tres eventos originales se omiten si `material_para_certificados/` no está presente; el resto utiliza datos sintéticos y los recursos incluidos. Para producir un PDF de comprobación visual con los tres roles y un nombre largo:
+
+```bash
+node scripts/verify-certificate-pdf.mjs <directorio-existente-de-salida>
+```
+
+La prueba opcional `scripts/verify-certificate-ui.mjs <directorio-temporal-con-playwright>` utiliza Edge, carga los originales KFC y comprueba cruce manual, PDF, ZIP, Excel, vista móvil y conservación del trabajo ante un guardado denegado. También verifica arrastre y redimensionado del editor, reducción de letra, independencia de modelos, restauración y las posiciones/tamaños de texto en PDF y ZIP descargados, además de la regresión de revisión El Chaco. Monta el componente con un UID sintético no autorizado; no accede a Firebase real. No requiere instalar Playwright como dependencia de producción.
 
 ## Agregar una herramienta
 
@@ -91,4 +119,4 @@ pwsh -NoProfile -File .opencode/codebase-memory.ps1 cli list_projects
 
 ## Tecnologías utilizadas
 
-React 19, Vite 6, React Router, Tailwind CSS, Lucide React, SweetAlert2, Chart.js, XLSX, JSZip, jsPDF, FileSaver y docx.
+React 19, Vite 6, React Router, Tailwind CSS, Lucide React, SweetAlert2, Chart.js, XLSX/xlsx-js-style, JSZip, jsPDF, pdf-lib/fontkit, Firebase, FileSaver y docx.
