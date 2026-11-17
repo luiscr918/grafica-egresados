@@ -7,7 +7,7 @@ import { formTable, parseDelimited, parseDuration, parseForms, parseTeams, parse
 import { buildRoster, linkRegistration, mergePeople, organizerPerson } from './roster.js'
 import { fitText, generateCertificates, loadCertificateAssets } from './certificates.js'
 import { buildReportWorkbook } from './exportReport.js'
-import { alignBox, changeDesign, designBoxes, constrainBox, resizeBox } from './design.js'
+import { alignBox, applySignaturesToModel, changeDesign, designBoxes, constrainBox, resizeBox } from './design.js'
 import { changeLogo, fitLogo, logoBoxes, MAX_LOGO_DATA } from './logos.js'
 
 const event = () => ({ ...blankEvent(), title: 'Inteligencia Artificial Generativa Aplicada a la Docencia de Educación Superior', institution: 'Universidad de Ejemplo', focus: 'innovación educativa y desarrollo profesional', date: '2026-11-12', startTime: '15:00:00', endTime: '16:00:00', windowConfirmed: true, signers: [...blankEvent().signers.slice(0, 2), { name: 'Dra. Ana Ejemplo', title: 'Representante institucional' }] })
@@ -244,6 +244,38 @@ test('Individual layouts survive snapshots and PDF batches; template edits repla
   assert.equal(designBoxes(e, p.role, 841.89, 595.28, other.id).heading.y, 134)
   assert.equal(designBoxes(e, p.role, 841.89, 595.28, p.id).signer0.y, 485)
   assert.ok(e.certificateDesigns.s1, 'Reset model preserves other roles')
+})
+
+test('Synchronizing all signatures removes old exceptions and keeps identical batch/individual layouts after reopening', async () => {
+  const assets = await loadCertificateAssets((file) => readFileSync(new URL(file, assetsPath)))
+  const p = person(), other = { ...person(), id: 'p2', certificateName: 'María Pérez' }, speaker = { ...person(), id: 's1', role: 'speaker' }
+  let e = event()
+  e = changeDesign(e, p, 'person', 'signer0', { x: 65, y: 465, scale: .8, signerTitle: 'Representante\ninstitucional' })
+  e = changeDesign(e, p, 'person', 'signer2', { y: 475 })
+  e = changeDesign(e, other, 'person', 'signer1', { y: 480, width: 210 })
+  e = changeDesign(e, other, 'person', 'recipient', { y: 200 })
+  e = changeDesign(e, speaker, 'person', 'signer0', { y: 460 })
+  const reference = designBoxes(e, p.role, 841.89, 595.28, p.id)
+  // Merely editing one block in model scope leaves the other signature exceptions.
+  e = changeDesign(e, p, 'model', 'signer0', reference.signer0)
+  assert.equal(designBoxes(e, p.role, 841.89, 595.28, other.id).signer1.y, 480)
+  e = applySignaturesToModel(e, p, 841.89, 595.28)
+  const snapshot = createSnapshot(e, [p, other, speaker])
+  const layouts = []
+  await generateCertificates(snapshot.event, snapshot.recipients, { assets, onLayout: (l) => layouts.push(l) })
+  for (const key of ['signer0', 'signer1', 'signer2']) {
+    assert.deepEqual(layouts[0].boxes[key], reference[key])
+    assert.deepEqual(layouts[1].boxes[key], reference[key])
+    assert.equal(snapshot.event.certificateDesigns?.[p.id]?.boxes[key], undefined)
+    assert.equal(snapshot.event.certificateDesigns?.[other.id]?.boxes[key], undefined)
+  }
+  assert.equal(layouts[1].boxes.recipient.y, 200)
+  assert.equal(layouts[2].boxes.signer0.y, 460)
+  for (const recipient of snapshot.recipients.slice(0, 2)) {
+    await generateCertificates(snapshot.event, [recipient], { assets, onLayout: (l) => {
+      for (const key of ['signer0', 'signer1', 'signer2']) assert.deepEqual(l.boxes[key], reference[key])
+    } })
+  }
 })
 
 test('Side and corner resizing anchor the opposite edge and enforce page and minimum limits', () => {

@@ -279,6 +279,61 @@ try {
   assert.equal(await titleField.inputValue(), title, 'Promotion includes text and manual line breaks')
   await titleField.press('Escape')
   await page.getByRole('button', { name: 'Restaurar elemento', exact: true }).click()
+  // Reproduce old saved signature exceptions: model scope must show the actual
+  // certificate, and a single action must unify every signature for the role.
+  await page.getByRole('radio', { name: 'Solo este certificado', exact: true }).check()
+  await page.getByLabel('Posición vertical', { exact: true }).fill('460')
+  await page.getByLabel('Elemento a editar', { exact: true }).selectOption('signer2')
+  await page.getByLabel('Posición vertical', { exact: true }).fill('470')
+  await page.getByLabel('Persona de muestra', { exact: true }).selectOption(otherParticipant)
+  await page.getByLabel('Elemento a editar', { exact: true }).selectOption('signer1')
+  await page.getByLabel('Posición vertical', { exact: true }).fill('480')
+  await page.getByLabel('Persona de muestra', { exact: true }).selectOption(sampleId)
+  await page.getByLabel('Elemento a editar', { exact: true }).selectOption('signer0')
+  await page.getByRole('radio', { name: 'Todos los certificados de este modelo', exact: true }).check()
+  assert.equal(await page.getByLabel('Posición vertical', { exact: true }).inputValue(), '460', 'Model scope does not hide the actual personal signature position')
+  await page.locator('.cert-designer').getByText('Vista previa actualizada', { exact: true }).waitFor()
+  await page.getByLabel('Certificados a generar').selectOption(sampleId)
+  const visiblePdfDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Descargar PDF', exact: true }).click()
+  async function allSignaturePositions(bytes) {
+    return page.evaluate(async (data) => {
+      const pdfjs = await import('/node_modules/pdfjs-dist/build/pdf.mjs')
+      const task = pdfjs.getDocument({ data: new Uint8Array(data) })
+      try {
+        const pdf = await task.promise, positions = []
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const content = await (await pdf.getPage(i)).getTextContent()
+          positions.push(content.items.filter((item) => item.str.trim() && item.transform[5] < 150).map((item) => ({ text: item.str, transform: item.transform, width: item.width, height: item.height })))
+        }
+        return positions
+      } finally { await task.destroy() }
+    }, [...bytes])
+  }
+  const referenceSignatures = (await allSignaturePositions(await readFile(await (await visiblePdfDownload).path())))[0]
+  assert.ok(referenceSignatures.length >= 6)
+  await page.getByRole('button', { name: /Igualar todas las firmas de/ }).click()
+  await page.getByLabel('Persona de muestra', { exact: true }).selectOption(otherParticipant)
+  await page.getByLabel('Elemento a editar', { exact: true }).selectOption('signer0')
+  assert.equal(await page.getByLabel('Posición vertical', { exact: true }).inputValue(), '460')
+  await page.getByLabel('Elemento a editar', { exact: true }).selectOption('signer1')
+  assert.equal(await page.getByLabel('Posición vertical', { exact: true }).inputValue(), '485')
+  await page.getByLabel('Elemento a editar', { exact: true }).selectOption('signer2')
+  assert.equal(await page.getByLabel('Posición vertical', { exact: true }).inputValue(), '470')
+  await page.getByLabel('Certificados a generar').selectOption('all')
+  const syncedDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Descargar PDF', exact: true }).click()
+  const syncedPositions = await allSignaturePositions(await readFile(await (await syncedDownload).path()))
+  const syncedZipDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'PDF individuales en ZIP', exact: true }).click()
+  const syncedZip = await JSZip.loadAsync(await readFile(await (await syncedZipDownload).path()))
+  const participantFiles = Object.values(syncedZip.files).filter((file) => file.name.startsWith('Participante/') && file.name.endsWith('.pdf'))
+  assert.ok(participantFiles.length >= 2)
+  for (const file of participantFiles) {
+    const positions = (await allSignaturePositions(await file.async('uint8array')))[0]
+    assert.deepEqual(positions, referenceSignatures, 'All signature text/coordinates/sizes in each ZIP certificate match the reference')
+    assert.ok(syncedPositions.some((items) => JSON.stringify(items) === JSON.stringify(positions)), 'Batch PDF matches the individual ZIP')
+  }
   // Shared branding remains common even when editing in individual scope.
   const pngs = await page.evaluate(() => [[200, 100], [80, 160]].map(([w, h], i) => {
     const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h

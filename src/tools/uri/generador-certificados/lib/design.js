@@ -67,6 +67,18 @@ export function changeDesign(event, person, scope, key, value) {
   return { ...event, designs: { ...event.designs, [person.role]: model }, certificateDesigns }
 }
 
+// Resolve once before removing exceptions: copy exactly the signatures visible
+// on the selected certificate, including size and text, to the whole role.
+export function applySignaturesToModel(event, person, width, height) {
+  const boxes = designBoxes(event, person.role, width, height, person.id)
+  let next = event
+  for (const index of SIGNER_INDICES[person.role]) {
+    const { label, ...box } = boxes[`signer${index}`]
+    next = changeDesign(next, person, 'model', `signer${index}`, box)
+  }
+  return next
+}
+
 export function resizeBox(box, direction, dx, dy, width, height) {
   let left = box.x, top = box.y, right = box.x + box.width, bottom = box.y + box.height
   if (direction.includes('w')) left = Math.max(0, Math.min(right - 20, left + dx))

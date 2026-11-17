@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { alignBox, changeDesign, constrainBox, designBoxes, resizeBox } from './lib/design.js'
+import { alignBox, applySignaturesToModel, changeDesign, constrainBox, designBoxes, resizeBox } from './lib/design.js'
 import { ROLE_LABELS } from './lib/model.js'
 import { changeLogo, logoBoxes, MAX_LOGO_DATA, readLogo } from './lib/logos.js'
 
@@ -27,13 +27,14 @@ export default function CertificateDesigner({ event, people, onChange, disabled:
   const canvas = useRef(null), stage = useRef(null), gesture = useRef(null)
   const person = people.find((p) => p.id === personId) || people[0]
   const role = person?.role
-  const boxes = role ? { ...designBoxes(scope === 'model' ? { ...event, certificateDesigns: {} } : event, role, size.width, size.height, person.id), ...logoBoxes(event, size.width, size.height) } : {}
+  const boxes = role ? { ...designBoxes(event, role, size.width, size.height, person.id), ...logoBoxes(event, size.width, size.height) } : {}
   const box = boxes[selected]
   const isLogo = selected.startsWith('logo:')
   const personal = event.certificateDesigns?.[person?.id]
   const saved = scope === 'model' ? event.designs?.[role] : personal?.role === role ? personal.boxes : {}
   const editingBox = editing === selected ? boxes[editing] : null
   const signer = editingBox && event.signers[Number(editing.replace('signer', ''))]
+  const personalSignatures = Object.values(event.certificateDesigns || {}).filter((p) => p.role === role && Object.keys(p.boxes || {}).some((key) => key.startsWith('signer'))).length
 
   async function uploadLogos(e) {
     const files = [...e.target.files]
@@ -63,7 +64,7 @@ export default function CertificateDesigner({ event, people, onChange, disabled:
     const timer = setTimeout(async () => {
       try {
         const [{ generateCertificates }, pdfjs] = await Promise.all([import('./lib/certificates.js'), pdfRenderer()])
-        const bytes = await generateCertificates(scope === 'model' ? { ...event, certificateDesigns: {} } : event, [person])
+        const bytes = await generateCertificates(event, [person])
         if (!active) return
         task = pdfjs.getDocument({ data: bytes })
         const document = await task.promise
@@ -153,8 +154,12 @@ export default function CertificateDesigner({ event, people, onChange, disabled:
         <legend>¿A quién se aplican los cambios?</legend>
         <label><input type="radio" name="certificate-design-scope" checked={scope === 'person'} onChange={() => { end(); setEditing(''); setScope('person') }} />Solo este certificado</label>
         <label><input type="radio" name="certificate-design-scope" checked={scope === 'model'} onChange={() => { end(); setEditing(''); setScope('model') }} />Todos los certificados de este modelo</label>
-        <p className="cert-help" role="status">{isLogo ? <strong>Logo compartido: cualquier cambio se aplica a todos los roles y personas de esta generación.</strong> : scope === 'person' ? <>Editando únicamente a <strong>{person.certificateName}</strong>. Los demás conservan su distribución. Restaurar recupera la plantilla de {ROLE_LABELS[role]}.</> : <>Editando los textos y firmas de <strong>{ROLE_LABELS[role]}</strong>. Cada elemento que cambies se aplica a todas las personas de este rol y reemplaza sus ajustes individuales de ese elemento. La vista muestra la plantilla común.</>}</p>
+        <p className="cert-help" role="status">{isLogo ? <strong>Logo compartido: cualquier cambio se aplica a todos los roles y personas de esta generación.</strong> : scope === 'person' ? <>Editando únicamente a <strong>{person.certificateName}</strong>. Los demás conservan su distribución. Restaurar recupera la plantilla de {ROLE_LABELS[role]}.</> : <>Editando los textos y firmas de <strong>{ROLE_LABELS[role]}</strong>. Cada elemento que cambies se aplica a todas las personas de este rol y reemplaza sus ajustes individuales de ese elemento. Los demás elementos conservan sus ajustes. La vista siempre muestra cómo se descargará la persona seleccionada.</>}</p>
       </fieldset>
+      <div className="cert-signature-sync">
+        <p className="cert-help" role="status">{personalSignatures ? `${personalSignatures} certificado(s) de ${ROLE_LABELS[role]} tienen ajustes individuales de firmas y pueden quedar en posiciones diferentes.` : `Las firmas de ${ROLE_LABELS[role]} usan la distribución común.`} Para la firma masiva, puedes igualar todas las firmas tomando como referencia a <strong>{person.certificateName}</strong>: posición, tamaño, nombre y cargo.</p>
+        <button type="button" className="cert-text-button" disabled={disabled} onClick={() => { end(); onChange(applySignaturesToModel(event, person, size.width, size.height)) }}>Igualar todas las firmas de {ROLE_LABELS[role]} a este certificado</button>
+      </div>
       <p className="cert-help"><strong>Modelo: {ROLE_LABELS[role]}</strong>. Flechas: 1 punto; Mayús + flecha: 10 puntos. Al arrastrar aparecen guías de centro y alineación; mantén Alt para mover sin ajuste. El fondo decorativo es fijo.</p>
       {box && <fieldset className="cert-designer-controls" disabled={disabled}>
         {Object.entries({ x: 'Posición horizontal', y: 'Posición vertical', width: 'Ancho del bloque', height: 'Alto del bloque' }).map(([key, label]) => <label key={key}>{label}<input type="number" step="1" min={key === 'width' ? 20 : key === 'height' ? 12 : 0} value={Math.round(box[key] * 10) / 10} onChange={(e) => { if (e.target.value !== '') update(selected, { ...box, [key]: Number(e.target.value) }) }} /></label>)}
