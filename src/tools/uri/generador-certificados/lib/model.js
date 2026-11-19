@@ -68,7 +68,7 @@ export function windowOf(event) {
   const end = civilTime(event.date, event.endTime)
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error('Define una fecha y un tramo de clase válido; la hora final debe ser posterior a la inicial.')
   if (!Number.isFinite(Number(event.percentage)) || Number(event.percentage) <= 0 || Number(event.percentage) > 100) throw new Error('La asistencia requerida debe ser mayor que 0 y hasta 100 %.')
-  if (!Number.isFinite(Number(event.tolerance)) || Number(event.tolerance) < 0 || Number(event.tolerance) > 2) throw new Error('La tolerancia debe estar entre 0 y 2 minutos.')
+  if (clean(event.tolerance) === '' || !Number.isFinite(Number(event.tolerance)) || Number(event.tolerance) < 0) throw new Error('La tolerancia debe ser un número mayor o igual a 0 minutos.')
   const duration = end - start
   return { start, end, duration, strict: Math.ceil(duration * Number(event.percentage) / 100), minimum: Math.max(0, Math.ceil(duration * Number(event.percentage) / 100 - Number(event.tolerance) * 60)) }
 }
@@ -111,7 +111,7 @@ export function evaluatedRoster(people, event) {
 export function validateCertificateEvent(event) {
   if (!clean(event.title) || !clean(event.institution) || !event.date || !clean(event.focus)) throw new Error('Completa tema, institución, fecha y enfoque académico del evento.')
   if (!Number.isFinite(civilTime(event.date, '00:00'))) throw new Error('La fecha del evento no es válida.')
-  if (clean(event.tolerance) === '' || !Number.isFinite(Number(event.tolerance)) || Number(event.tolerance) < 0 || Number(event.tolerance) > 2) throw new Error('La tolerancia debe estar entre 0 y 2 minutos.')
+  if (clean(event.tolerance) === '' || !Number.isFinite(Number(event.tolerance)) || Number(event.tolerance) < 0) throw new Error('La tolerancia debe ser un número mayor o igual a 0 minutos.')
   if (!Number.isFinite(Number(event.percentage)) || Number(event.percentage) <= 0 || Number(event.percentage) > 100) throw new Error('La asistencia requerida debe ser mayor que 0 y hasta 100 %.')
   for (const role of ['organizer', 'speaker', 'participant']) if (!Number.isFinite(Number(event.hours[role])) || Number(event.hours[role]) <= 0) throw new Error('Las horas de cada certificado deben ser mayores que cero.')
   if (!event.signers.every((s) => clean(s.name) && clean(s.title))) throw new Error('Completa el nombre y cargo de los tres firmantes.')

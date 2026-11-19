@@ -144,6 +144,13 @@ Portal de herramientas internas ITSQMET para General, USEGBE, URI y UFC. Aplicac
 - Verificación ejecutada: `npm run test:certificados` (17 aprobadas, 6 omitidas por originales ausentes); `npm run build` correcto (aviso habitual de chunks grandes); Edge/Playwright mediante `node scripts/verify-certificate-ui.mjs C:\Users\User\AppData\Local\Temp\opencode\certificate-ui-test --designer-only`: regresión de excepciones en varias firmas, cambio de alcance sin ocultar posición, sincronización completa y comparación de texto/coordenadas/tamaño reales de todas las firmas de participantes en PDF por lote y todos los PDF de participantes del ZIP frente al certificado de referencia, además de regresiones existentes de editor/textos/logos/móvil. Prueba de dominio valida snapshot/reapertura, igualdad en lote e individuales y conservación de otros bloques/roles. `git diff --check` sin errores de whitespace.
 - Consultados índice/ADR y cobertura/frescura de los tres archivos de implementación y contrastados con código actual. Pendientes: comprobación con expediente KFC guardado real y persistencia autenticada en Firebase; originales Forms/Teams ausentes. No se accedió a Firebase ni se modificaron expedientes remotos.
 
+### 2026-11-19 — Tolerancia de certificados sin límite máximo
+
+- A petición del usuario, eliminado el máximo de 2 minutos tanto del campo de Evento como de las validaciones de cálculo y guardado. Tolerancia inicial de 1 minuto, valores numéricos desde 0 sin máximo; se rechazan vacíos, negativos y no finitos. El mínimo calculado nunca baja de cero.
+- Archivos: `src/tools/uri/generador-certificados/EventSettings.jsx`, `lib/model.js`, `lib/certificates.test.js`, README y esta memoria. Esta decisión sustituye el límite histórico de 2 minutos.
+- Verificación ejecutada: `npm run test:certificados` (17 aprobadas, 6 omitidas por originales ausentes), incluida tolerancia de 10,5 minutos, límite exacto en segundos, snapshot/reapertura local y tolerancia superior al mínimo estricto; `npm run build` correcto con aviso habitual de chunks grandes; `git diff --check` sin errores de whitespace. Consultados índice, ADR y cobertura/frescura y contrastados con código actual.
+- Pendiente: comprobación interactiva de este campo y guardado remoto autenticado en Firebase; no realizados en esta tarea. Se mantiene el requisito existente de recargar originales si se cambia la política de asistencia de un expediente recuperado.
+
 ## Memoria técnica
 
 - Configuración MCP: `opencode.json`.

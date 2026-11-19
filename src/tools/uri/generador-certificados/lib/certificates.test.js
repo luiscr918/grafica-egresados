@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { PDFDocument, PDFName, StandardFonts } from 'pdf-lib'
-import { blankEvent, civilTime, createSnapshot, evaluatePerson, formatDuration, policyKey, unionSeconds, windowOf } from './model.js'
+import { blankEvent, civilTime, createSnapshot, evaluatePerson, formatDuration, policyKey, unionSeconds, validateCertificateEvent, windowOf } from './model.js'
 import { formTable, parseDelimited, parseDuration, parseForms, parseTeams, parseTeamsDate, readSheets } from './importFiles.js'
 import { buildRoster, linkRegistration, mergePeople, organizerPerson } from './roster.js'
 import { fitText, generateCertificates, loadCertificateAssets } from './certificates.js'
@@ -32,12 +32,24 @@ test('Attendance clips to the class, removes gaps and overlapping devices', () =
   assert.equal(evaluatePerson(p, event()).seconds, 3000)
 })
 
-test('One-minute default, at most two minutes, and exact-second boundaries', () => {
+test('One-minute default, uncapped tolerance, and exact-second boundaries', () => {
   assert.equal(windowOf(event()).minimum, 2820)
   assert.equal(evaluatePerson(person(2820), event()).code, 'tolerance')
   assert.equal(evaluatePerson(person(2819), event()).eligible, false)
   assert.equal(evaluatePerson(person(2760), { ...event(), tolerance: 2 }).eligible, true)
-  assert.throws(() => windowOf({ ...event(), tolerance: 2.01 }), /0 y 2/)
+  const flexible = { ...event(), tolerance: '10.5' }
+  assert.equal(windowOf(flexible).minimum, 2250)
+  assert.equal(evaluatePerson(person(2250), flexible).code, 'tolerance')
+  assert.equal(evaluatePerson(person(2249), flexible).eligible, false)
+  const payload = createSnapshot(flexible, [person(2250)])
+  assert.equal(payload.event.tolerance, '10.5')
+  assert.equal(evaluatePerson(payload.recipients[0], payload.event).eligible, true)
+  assert.equal(windowOf({ ...event(), tolerance: 1000 }).minimum, 0)
+  assert.equal(windowOf({ ...event(), tolerance: 0 }).minimum, 2880)
+  for (const tolerance of [-1, '', 'abc', Infinity, NaN]) {
+    assert.throws(() => windowOf({ ...event(), tolerance }), /mayor o igual a 0/)
+    assert.throws(() => validateCertificateEvent({ ...event(), tolerance }), /mayor o igual a 0/)
+  }
   assert.equal(evaluatePerson(person(2880), { ...event(), windowConfirmed: false }).eligible, false)
 })
 

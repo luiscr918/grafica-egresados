@@ -29,7 +29,7 @@ export default function EventSettings({ event, onChange, suggestion, onSuggestio
         <label>Inicio efectivo<input type="time" step="1" value={event.startTime} onChange={(e) => field('startTime', e.target.value)} /></label>
         <label>Fin efectivo<input type="time" step="1" value={event.endTime} onChange={(e) => field('endTime', e.target.value)} /></label>
         <label>Asistencia requerida (%)<input type="number" min="1" max="100" step="1" value={event.percentage} onChange={(e) => field('percentage', e.target.value)} /></label>
-        <label>Tolerancia (minutos)<input type="number" min="0" max="2" step="0.5" value={event.tolerance} onChange={(e) => field('tolerance', e.target.value)} /></label>
+        <label>Tolerancia (minutos, sin máximo)<input type="number" min="0" step="0.5" value={event.tolerance} onChange={(e) => field('tolerance', e.target.value)} /></label>
       </div>
       {interval ? <div className="cert-time-summary"><span>Duración <strong>{formatDuration(interval.duration)}</strong></span><span>Mínimo estricto <strong>{formatDuration(interval.strict)}</strong></span><span>Con tolerancia <strong>{formatDuration(interval.minimum)}</strong></span></div> : <p className="cert-help">{intervalError}</p>}
       <label className="cert-checkbox"><input type="checkbox" checked={event.windowConfirmed} disabled={!interval} onChange={(e) => field('windowConfirmed', e.target.checked)} /> Confirmo que este tramo corresponde a la clase, no al tiempo total que quedó abierta la reunión.</label>
