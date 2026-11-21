@@ -14,13 +14,15 @@ El generador de gráficos conserva la carga de Excel ancho y largo, incluyendo u
 
 La herramienta **Solicitud de marketing – Bolsa de empleo** analiza el correo de ITSQMET, propone los datos del requerimiento, permite editarlos, genera una vista previa y descarga un `.docx` con hipervínculos e imágenes opcionales.
 
-La herramienta **Bitácora e informe mensual de actividades** requiere iniciar sesión con Firebase Authentication. Permite importar una exportación JSON de Trello, corregir fechas de referencia, clasificar actividades de URI/UFC/USEGBE, refinar localmente la redacción, guardar informes en Firestore y descargar el informe personal o una base para revisión de jefatura en `.docx`.
+La herramienta **Bitácora e informe mensual de actividades** requiere iniciar sesión con Firebase Authentication. Permite importar una exportación JSON de Trello, corregir fechas de referencia, clasificar actividades de URI/UFC/USEGBE, refinar localmente la redacción, guardar informes en Firestore y descargar las versiones de Luis y Yesenia en `.docx`.
 
 Antes de importar Trello, completar **Fecha inicial** y **Fecha final**. La importación toma únicamente tarjetas cuya fecha de referencia esté dentro del rango (ambos extremos incluidos): vencimiento de la tarjeta o, si no tiene una fecha válida de vencimiento, última actividad. Las tarjetas sin fecha válida se omiten y se contabilizan en el resumen.
 
 Para completar el mismo informe cada semana, abrir su borrador guardado e importar la nueva exportación del tablero. Las tarjetas se identifican por su ID de Trello: se agregan las nuevas y se actualizan los campos importados que no hayas corregido, sin duplicar las ya registradas. Se conservan las evidencias y la selección «Incluir». Los registros antiguos sin historial de importación conservan sus campos editables. Las actividades existentes no se eliminan por faltar en una exportación posterior o quedar fuera del rango de la nueva importación. Guardar en Firebase después de revisar los cambios.
 
-El botón **Vista previa** muestra el contenido consolidado de la versión personal o de jefatura antes de descargarlo. Las actividades se agrupan por unidad y categoría, sin fechas individuales.
+El botón **Vista previa** muestra el contenido consolidado, la portada, el código y los firmantes de Luis o Yesenia antes de descargar. Las actividades se agrupan por unidad y categoría, sin fechas individuales. La paginación HTML es aproximada; Word conserva las plantillas institucionales originales: portada, logo, encabezado, firmas y pie gráfico. Ambas versiones usan los mismos enlaces OneDrive/SharePoint y correos de Yesenia/Bolsa de Empleo; Luis añade su correo. «Evidencias» añade texto a estos datos comunes. Horario vacío usa el del modelo (Luis 9h00–15h00; Yesenia 8h00–17h00); un horario escrito o recuperado de un informe guardado se respeta en ambas versiones. El código toma año/mes de la fecha final (inicial si no hay final) y admite reemplazo manual.
+
+Plantillas preparadas en `public/informes/`. Para reconstruirlas desde los dos documentos base de la raíz: `python scripts/prepare-report-templates.py` (solo biblioteca estándar; no modifica originales). Verificación de contenido y conservación de recursos originales: `node scripts/verify-report-docx.mjs` (requiere los originales en la raíz). Puede recibir una carpeta existente como argumento para guardar los dos Word de prueba.
 
 Comprobaciones de importación: `node --test src/tools/general/informe-actividades/lib/trello.test.js`.
 
